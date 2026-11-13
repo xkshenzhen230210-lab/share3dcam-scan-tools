@@ -1,5 +1,7 @@
 # SHARE3DCAM 赛尔点云绘图助手
 
+[中文](README.md) | [English](README.en.md) | [English user guide](docs/User-Guide.en.md)
+
 <img src="extension/share_pointcloud/share3dcam-logo.png" width="260" alt="SHARE3DCAM">
 
 **赛尔电商中心 · Windows SketchUp 扫描参照与绘图工具 · MIT 开源**
