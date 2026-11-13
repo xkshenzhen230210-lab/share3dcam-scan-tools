@@ -213,7 +213,7 @@ module SHARE3DCAM
       def export_full
         require_cloud;raise '旧版缓存只有抽样点，请重新导入源文件。' unless full_index?
         raise '查询进程不可用，请重新载入缓存。' unless @worker_pid
-        path=UI.savepanel('导出全量裁剪点云（原始坐标，米）','','点云全量裁剪.ply');return unless path
+        path=PointCloud.savepanel('导出全量裁剪点云（原始坐标，米）','','点云全量裁剪.ply');return unless path
         path+='.ply' unless File.extname(path).downcase=='.ply'
         write_request('export',{'path'=>path}) do |result|
           @message="已导出 #{result['count']} 点：#{File.basename(result['path'])}。坐标为原始坐标（米），未应用参照平移旋转。"

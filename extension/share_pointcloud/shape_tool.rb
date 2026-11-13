@@ -27,7 +27,7 @@ module SHARE3DCAM
 
       def update_prompt
         label = @kind=='rectangle' ? '长,宽' : (@kind=='arc' && @vertices.size==2 ? '逆时针角度' : '半径')
-        Sketchup.vcb_label = label
+        PointCloud.vcb_label(label)
         steps = if @vertices.empty?
                   @kind=='rectangle' ? '先在扫描上捕捉第一个角点' : '先在扫描上捕捉圆心'
                 elsif @kind=='rectangle'
@@ -37,7 +37,7 @@ module SHARE3DCAM
                 else
                   '单击确定半径；或输入 500mm（半径，不是直径）'
                 end
-        Sketchup.set_status_text("#{NAMES[@kind]}：#{steps}。水平绘制；Esc 清除本次预览，右键结束。")
+        PointCloud.status("#{NAMES[@kind]}：#{steps}。水平绘制；Esc 清除本次预览，右键结束。")
       end
 
       def point_at(x,y,view)
@@ -59,7 +59,7 @@ module SHARE3DCAM
       def onMouseMove(_flags,x,y,view)
         return if PointCloud.drawing?
         @hover = point_at(x,y,view)
-        view.tooltip = @source ? '扫描捕捉；红框为水平面实际落点' : (@hover ? '已确定的水平绘图平面' : '先在可见扫描点上捕捉起点')
+        view.tooltip = PointCloud.tr(@source ? '扫描捕捉；红框为水平面实际落点' : (@hover ? '已确定的水平绘图平面' : '先在可见扫描点上捕捉起点'))
         if @hover && !@vertices.empty?
           Sketchup.vcb_value = if @kind=='rectangle'
                                 format('%.3f m, %.3f m',(@hover.x-@vertices.first.x).abs/M_TO_IN,(@hover.y-@vertices.first.y).abs/M_TO_IN)
@@ -94,7 +94,7 @@ module SHARE3DCAM
         view.invalidate
       rescue StandardError => error
         @session.message = error.message
-        Sketchup.set_status_text(error.message)
+        PointCloud.status(error.message)
         UI.beep
       end
 
@@ -194,7 +194,7 @@ module SHARE3DCAM
               accept_point(center.offset(direction,radius),view)
             end
           rescue StandardError => error
-            Sketchup.set_status_text(error.message)
+            PointCloud.status(error.message)
             UI.beep
           end
         end
@@ -205,8 +205,8 @@ module SHARE3DCAM
       end
 
       def getMenu(menu,*_args)
-        menu.add_item('重选起点') { onCancel(0,@session.model.active_view) }
-        menu.add_item('结束工具（保留已画几何）') { PointCloud.safely { @session.model.select_tool(nil) } }
+        menu.add_item(PointCloud.tr('重选起点')) { onCancel(0,@session.model.active_view) }
+        menu.add_item(PointCloud.tr('结束工具（保留已画几何）')) { PointCloud.safely { @session.model.select_tool(nil) } }
       end
 
       def resume(view)

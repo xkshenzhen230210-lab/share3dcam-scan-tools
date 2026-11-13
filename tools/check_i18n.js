@@ -1,0 +1,21 @@
+// Translation behavior tests run without SketchUp; DOM/layout checks run separately.
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+const root=path.join(__dirname,'../extension/share_pointcloud');
+const context={};vm.createContext(context);
+vm.runInContext(fs.readFileSync(path.join(root,'translations.js'),'utf8'),context);
+vm.runInContext(fs.readFileSync(path.join(root,'i18n.js'),'utf8'),context);
+const i18n=context.ScanI18n;
+assert.equal(i18n.translate('矩形','en'),'Rectangle');
+assert.equal(i18n.translate('圆','en'),'Circle');
+assert.equal(i18n.translate('圆','zh-CN'),'圆');
+assert.equal(i18n.translate('未知文件名_毛坯房.ply','en'),'未知文件名_毛坯房.ply');
+assert.equal(i18n.translate('导入未完成：请先退出组件或群组编辑。','en'),'Import incomplete: Exit component or group editing first.');
+assert.equal(i18n.translate('模型 Z 10.4166 m ｜源文件 Z -1.5834 m','en'),'Model Z 10.4166 m | Source Z -1.5834 m');
+assert.equal(i18n.translate('已向上拉伸 2.8 米，生成可编辑的 SU 实体群组。','en'),'Extruded upward by 2.8 m into an editable SketchUp solid group.');
+assert.equal(i18n.translate('圆','unsupported'),'圆');
+assert.equal(i18n.translate('半径','en'),'Radius');
+assert.equal(i18n.translate('请输入有效数字','en'),'Enter a valid number.');
+assert.equal(i18n.translate('模型 Z {0} m ｜源文件 Z {1} m','en',[1.25,-3]),'Model Z 1.25 m | Source Z -3 m');
+const html=fs.readFileSync(path.join(root,'panel.html'),'utf8');
+assert.match(html,/data-language="zh-CN"/);assert.match(html,/data-language="en"/);
+console.log('Bilingual translations, dynamic values, unknown filenames and language controls: PASS');

@@ -17,12 +17,12 @@ module SHARE3DCAM
       end
 
       def activate
-        Sketchup.set_status_text(STATUS)
+        PointCloud.status(STATUS)
         @session.model.active_view.invalidate
       end
 
       def resume(view)
-        Sketchup.set_status_text(STATUS)
+        PointCloud.status(STATUS)
         view.invalidate
       end
 
@@ -47,7 +47,7 @@ module SHARE3DCAM
           index = handle && handle[:index]
           view.invalidate unless @hover == index
           @hover = index
-          view.tooltip = handle ? "拖动 #{LABELS[index]} 剪切面" : '拖动彩色手柄；转动视角可调整其他方向'
+          view.tooltip = PointCloud.tr(handle ? "拖动 #{LABELS[index]} 剪切面" : '拖动彩色手柄；转动视角可调整其他方向')
         end
       end
 

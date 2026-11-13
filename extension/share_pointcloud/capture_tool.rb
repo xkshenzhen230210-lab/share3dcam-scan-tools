@@ -7,13 +7,13 @@ module SHARE3DCAM
       end
       def activate
         if @mode=='level'
-          Sketchup.set_status_text('单击干净地面读取模型Z标高；Esc返回。高斯取点应在邻近位置复核。')
-          Sketchup.vcb_label='模型 Z'
+          PointCloud.status('单击干净地面读取模型Z标高；Esc返回。高斯取点应在邻近位置复核。')
+          PointCloud.vcb_label('模型 Z')
           return
         end
         ensure_plan_view if @mode=='trace' && @session.options['plane']
-        Sketchup.set_status_text('单击全量捕捉；描线可用方向键锁轴，尺寸框输入3m或3000mm；右键结束。')
-        Sketchup.vcb_label = '线段长度'
+        PointCloud.status('单击全量捕捉；描线可用方向键锁轴，尺寸框输入3m或3000mm；右键结束。')
+        PointCloud.vcb_label('线段长度')
       end
       def enableVCB?
         @mode=='trace'
@@ -79,9 +79,9 @@ module SHARE3DCAM
         return if PointCloud.drawing?
         old=@hover;old_source=@source;@source=pick(x,y,view); @hover=@source && projected(@source)
         if @mode=='level'
-          view.tooltip=@hover ? format('模型标高 Z = %.4f m，单击读取',@hover.z/M_TO_IN) : '请对准地面可见扫描点'
+          view.tooltip=PointCloud.tr(@hover ? format('模型标高 Z = %.4f m，单击读取',@hover.z/M_TO_IN) : '请对准地面可见扫描点')
         else
-        view.tooltip=@hover ? (@session.options['plane'] && @mode=='trace' ? '俯视平面描图；按指定标高落线' : '三维原点捕捉；红框与实际落点一致') : '靠近可见点捕捉；裁剪或放大可减少前后点重叠'
+        view.tooltip=PointCloud.tr(@hover ? (@session.options['plane'] && @mode=='trace' ? '俯视平面描图；按指定标高落线' : '三维原点捕捉；红框与实际落点一致') : '靠近可见点捕捉；裁剪或放大可减少前后点重叠')
         end
         if @mode=='level' && @hover
           Sketchup.vcb_value=format('%.4f m',@hover.z/M_TO_IN)
@@ -110,7 +110,7 @@ module SHARE3DCAM
       end
       def accept_capture(p,view)
         unless p
-          Sketchup.set_status_text('这一点没有捕捉到。请移到可见的扫描点上，出现红框后再单击。') if @mode=='trace'
+          PointCloud.status('这一点没有捕捉到。请移到可见的扫描点上，出现红框后再单击。') if @mode=='trace'
           return UI.beep
         end
         if @mode=='level'
@@ -130,7 +130,7 @@ module SHARE3DCAM
           end
         else
           if commit_point(projected(p))
-            Sketchup.set_status_text(@vertices.length==1 ? '起点已确认，请单击终点。' : '已创建原生线段。可继续描线，或右键结束。')
+            PointCloud.status(@vertices.length==1 ? '起点已确认，请单击终点。' : '已创建原生线段。可继续描线，或右键结束。')
           end
         end
         view.invalidate
@@ -141,7 +141,7 @@ module SHARE3DCAM
       def commit_point(p)
         if !@vertices.empty?
           if @vertices.last.distance(p)<0.1.mm
-            Sketchup.set_status_text('两点重合或过近。请重新选终点，或检查锁轴和平面标高。')
+            PointCloud.status('两点重合或过近。请重新选终点，或检查锁轴和平面标高。')
             UI.beep
             return false
           end
@@ -176,10 +176,10 @@ module SHARE3DCAM
         commit_point(@vertices.last.offset(direction,length))
         view.invalidate
       rescue StandardError => e
-        UI.messagebox(e.message)
+        PointCloud.messagebox(e.message)
       end
       def self.prompt_extrusion(session, group)
-        input = UI.inputbox(['向上拉伸高度（米）'], [2.8], '拉伸描线面')
+        input = PointCloud.inputbox(['向上拉伸高度（米）'], [2.8], '拉伸描线面')
         extrude_profile(session, group, input.first) if input
       end
 
@@ -201,7 +201,7 @@ module SHARE3DCAM
         Sketchup.send_action('selectPushPullTool:')
         Sketchup.focus
         model.active_view.invalidate
-        Sketchup.set_status_text('已进入面所在群组。单击面，移动鼠标确定推拉方向，再输入带单位的高度（例如 2.8m）并回车。')
+        PointCloud.status('已进入面所在群组。单击面，移动鼠标确定推拉方向，再输入带单位的高度（例如 2.8m）并回车。')
         target
       end
 
@@ -258,7 +258,7 @@ module SHARE3DCAM
           view.camera = angle_view
         end
         view.invalidate
-        Sketchup.set_status_text("已向上拉伸 #{height} 米，生成可编辑的 SU 实体群组。")
+        PointCloud.status("已向上拉伸 #{height} 米，生成可编辑的 SU 实体群组。")
         group
       end
 
@@ -285,22 +285,22 @@ module SHARE3DCAM
       end
       def getMenu(menu,*_args)
         if @mode=='trace'
-          menu.add_item('闭合并尝试成面') do
+          menu.add_item(PointCloud.tr('闭合并尝试成面')) do
             PointCloud.safely { close_path(edit_for_pushpull: true) }
           end
           if @session.gaussian? && @session.options['plane']
-            menu.add_item('闭合并向上拉伸…') do
+            menu.add_item(PointCloud.tr('闭合并向上拉伸…')) do
               PointCloud.safely do
                 begin
                   group = @group
                   CaptureTool.prompt_extrusion(@session, group) if close_path
                 rescue StandardError => error
-                  UI.messagebox(error.message)
+                  PointCloud.messagebox(error.message)
                 end
               end
             end
           end
-          menu.add_item('撤销上一点') do
+          menu.add_item(PointCloud.tr('撤销上一点')) do
             PointCloud.safely do
               if @vertices.size>1
                 @session.model.start_operation('撤销描线末段',true)
@@ -312,14 +312,14 @@ module SHARE3DCAM
             end
           end
         end
-        menu.add_item('结束工具（保留已画几何）') { PointCloud.safely { @session.model.select_tool(nil) } }
+        menu.add_item(PointCloud.tr('结束工具（保留已画几何）')) { PointCloud.safely { @session.model.select_tool(nil) } }
       end
       def close_path(edit_for_pushpull: false)
         points = @vertices.dup
         already_closed = points.size > 1 && points.first.distance(points.last) < 0.1.mm
         points.pop if already_closed
         if points.size < 3
-          UI.messagebox('至少需要三个不同的点。')
+          PointCloud.messagebox('至少需要三个不同的点。')
           return nil
         end
 
@@ -344,13 +344,13 @@ module SHARE3DCAM
         end
         model.select_tool(nil)
         if !face
-          UI.messagebox('闭合边已创建，但轮廓不共面或自交。请开启「俯视平面描图」，沿同一标高重新描线。')
+          PointCloud.messagebox('闭合边已创建，但轮廓不共面或自交。请开启「俯视平面描图」，沿同一标高重新描线。')
         elsif edit_for_pushpull
           CaptureTool.native_pushpull(@session, @group)
         elsif @session.gaussian?
           model.selection.clear
           model.selection.add(@group)
-          Sketchup.set_status_text('已闭合成原生面。可在「绘图」点击「向上拉伸描线面」。')
+          PointCloud.status('已闭合成原生面。可在「绘图」点击「向上拉伸描线面」。')
         end
         face
       end
@@ -375,7 +375,7 @@ module SHARE3DCAM
           a=view.screen_coords(@source);x=a.x;y=a.y
           view.drawing_color='blue';view.line_width=1
           view.draw2d(GL_LINES,[[x-4,y,0],[x+4,y,0],[x,y-4,0],[x,y+4,0]])
-          view.draw_text(a,' 原点（红框为锁轴/平面落点）',color:'blue',size:10)
+          view.draw_text(a,PointCloud.tr(' 原点（红框为锁轴/平面落点）'),color:'blue',size:10)
         end
         view.drawing_color=Sketchup::Color.new(190,28,38)
         view.line_width=2

@@ -8,7 +8,7 @@
 :root{color-scheme:light;--ink:#221c1d;--muted:#62595b;--line:#e8dfe0;--red:#aa1c2a;--wash:#fbf8f8}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-body{margin:0;background:var(--wash);color:var(--ink);font:13px/1.5 "Microsoft YaHei UI","Microsoft YaHei",sans-serif}
+body{margin:0;background:var(--wash);color:var(--ink);font:13px/1.5 "Segoe UI","Microsoft YaHei UI","Microsoft YaHei",sans-serif;min-width:300px}
 header{position:sticky;top:0;z-index:2;background:#fff;border-bottom:1px solid var(--line)}
 .brand{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 15px 7px}
 .brand img{display:block;width:190px;max-width:54%;height:auto}
@@ -16,6 +16,16 @@ header{position:sticky;top:0;z-index:2;background:#fff;border-bottom:1px solid v
 .brand-meta strong,.brand-meta small{display:block}
 .brand-meta strong{font-size:13px}
 .brand-meta small{color:var(--muted);font-size:11px}
+.language-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:1px 15px 9px}
+.language-caption{font-size:11px;color:var(--muted)}
+.language-switch{display:flex;border:1px solid var(--line);border-radius:5px;padding:2px;gap:2px;background:var(--wash)}
+.language-switch button{min-height:26px;padding:3px 11px;border:0;background:transparent;font-size:12px;line-height:1.4}
+.language-switch button[aria-pressed=true]{background:var(--red);color:#fff;font-weight:600}
+.language-switch button:hover:not([aria-pressed=true]){background:#f2e7e9}
+html[lang=en] .brand-meta strong{font-size:12px}
+html[lang=en] button{line-height:1.35;overflow-wrap:break-word}
+html[lang=en] .card-head h2{font-size:14px}
+@media(max-width:350px){.brand{padding-inline:10px}.brand img{width:160px}.language-row{padding-inline:10px}.language-caption{font-size:10px}.grid3{grid-template-columns:repeat(2,minmax(0,1fr))}}
 nav{display:grid;grid-template-columns:repeat(4,1fr);padding:0 8px;gap:2px}
 nav button{border:0;border-radius:0;border-bottom:3px solid transparent;padding:8px 2px 7px}
 nav button[aria-selected=true]{border-bottom-color:var(--red);color:var(--red);font-weight:700}
@@ -59,7 +69,14 @@ input[type=range]{padding:0;accent-color:var(--red)}
 <header>
   <div class="brand">
     <img src="share3dcam-logo.png" width="952" height="135" alt="SHARE3DCAM">
-    <div class="brand-meta"><strong>赛尔电商中心</strong><small>绘图助手 · 0.9.9</small></div>
+    <div class="brand-meta"><strong>赛尔电商中心</strong><small>绘图助手 · 0.10.0</small></div>
+  </div>
+  <div class="language-row">
+    <span class="language-caption">界面语言 / Interface language</span>
+    <div class="language-switch" role="group" aria-label="界面语言 / Interface language">
+      <button type="button" data-language="zh-CN" lang="zh-CN" aria-pressed="true">中文</button>
+      <button type="button" data-language="en" lang="en" aria-pressed="false">English</button>
+    </div>
   </div>
   <nav role="tablist" aria-label="插件功能">
     <button role="tab" id="tab-import" aria-controls="page-import" aria-selected="true">导入</button>
@@ -200,15 +217,32 @@ input[type=range]{padding:0;accent-color:var(--red)}
   </div>
   <input type="hidden" id="size" value="0"><input type="hidden" id="budget" value="50000">
 </main>
+<script src="translations.js"></script>
+<script src="i18n.js"></script>
 <script>
-const $=id=>document.getElementById(id);const val=id=>$(id).value;let editing=false;
+const $=id=>document.getElementById(id);const val=id=>$(id).value;let editing=false,lastState=null,pendingLanguage=null,lastError='',holdLanguageInputs=false;
+let language='zh-CN';try{language=localStorage.getItem('share3dcam.language')==='en'?'en':'zh-CN'}catch{}
+const t=(text,values)=>ScanI18n.translate(text,language,values);
+const translateStatic=ScanI18n.snapshot(document);
+function setLanguage(value,notify=false){
+  if(notify)holdLanguageInputs=true;
+  language=value==='en'?'en':'zh-CN';
+  try{localStorage.setItem('share3dcam.language',language)}catch{}
+  translateStatic(language);
+  document.querySelectorAll('[data-language]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.language===language)));
+  if(lastState)renderState(lastState,true);
+  if(lastError)showError(lastError);
+  if(notify){pendingLanguage=language;call('language',{language})}
+}
+document.querySelectorAll('[data-language]').forEach(button=>button.addEventListener('click',()=>setLanguage(button.dataset.language,true)));
+setLanguage(language);
 document.addEventListener('focusin',e=>{if(e.target.matches('input,select'))editing=true});document.addEventListener('focusout',()=>editing=false);
-function call(name,payload={}){if(window.sketchup&&window.sketchup.action)window.sketchup.action(name,payload);else showError('请从 SketchUp 扩展程序菜单打开此面板。')}
+function call(name,payload={}){if(name!=='language'&&name!=='ready'){holdLanguageInputs=false;showError('')}if(window.sketchup&&window.sketchup.action)window.sketchup.action(name,payload);else showError('请从 SketchUp 扩展程序菜单打开此面板。')}
 function fields(){let x={};['size','slice_z','slice_width','x','y','z','angle','plane_z','budget','gaussian_opacity'].forEach(k=>x[k]=Number(val(k)));['visible','box','slice','plane'].forEach(k=>x[k]=$(k).checked);x.color=val('color');if(Object.values(x).some(v=>typeof v==='number'&&!Number.isFinite(v)))throw Error('请输入有效数字');return x}
 function apply(){try{call('settings',fields())}catch(e){showError(e.message)}}
 function clip(){try{let c=['xmin','ymin','zmin','xmax','ymax','zmax'].map(k=>{if(!val(k).trim())throw Error('裁剪盒六个数值必须填全');return Number(val(k))});if(c.some(v=>!Number.isFinite(v)))throw Error('裁剪参数不是有效数字');let s=fields();s.clip=c;s.box=true;call('settings',s)}catch(e){showError(e.message)}}
 function tool(name){try{const payload=fields();if(name.startsWith('draw_')){payload.shape_segments=Number(val('shape_segments'));payload.polygon_sides=Number(val('polygon_sides'));if(!Number.isInteger(payload.shape_segments)||payload.shape_segments<12||payload.shape_segments>360||!Number.isInteger(payload.polygon_sides)||payload.polygon_sides<3||payload.polygon_sides>64)throw Error('圆弧段数请输入12–360的整数，多边形边数请输入3–64的整数')}call(name,payload)}catch(e){showError(e.message)}}
-function renderMetrics(rows){const host=$('metrics');while(host.children.length>rows.length)host.lastElementChild.remove();rows.forEach(([k,v],i)=>{let d=host.children[i];if(!d){d=document.createElement('div');host.append(d)}const text=k+'：'+v.toLocaleString();if(d.textContent!==text)d.textContent=text})}
+function renderMetrics(rows){const host=$('metrics');while(host.children.length>rows.length)host.lastElementChild.remove();rows.forEach(([k,v],i)=>{let d=host.children[i];if(!d){d=document.createElement('div');host.append(d)}const text=k+(language==='en'?': ':'：')+v.toLocaleString(language==='en'?'en-US':'zh-CN');if(d.textContent!==text)d.textContent=text})}
 const tabs = Array.from(document.querySelectorAll('[role=tab]'));
 const scanContent = document.querySelectorAll('[data-scan]');
 const nativeContent = document.querySelectorAll('[data-native]');
@@ -242,7 +276,8 @@ function setText(id, value) {
   if (element.textContent !== value) element.textContent = value;
 }
 function showError(message) {
-  setText('error', message);
+  lastError=message;
+  setText('error', t(message));
   $('error').hidden = !message;
 }
 function importScan(action) {
@@ -250,6 +285,14 @@ function importScan(action) {
 }
 
 function receive(state) {
+  lastState=state;
+  if(state.language && (!pendingLanguage || state.language===pendingLanguage)){
+    pendingLanguage=null;
+    if(state.language!==language){setLanguage(state.language);return}
+  }
+  renderState(state);
+}
+function renderState(state,preserveInputs=false) {
   const cloud = state.cloud;
   const gaussian = cloud?.gaussian === true;
   for (const id of ['import', 'open_index', 'import_mesh', 'import_gaussian', 'open_gaussian_index', 'save_project']) {
@@ -265,21 +308,20 @@ function receive(state) {
   $('export_full').disabled = (state.options.free_crop || []).length > 0;
   $('full_stats').disabled = (state.options.free_crop || []).length > 0;
   $('cloud_color').hidden = gaussian;
-  $('save_project').textContent = cloud ? '保存并收拢工程' : '另存为 SKP';
+  setText('save_project',t(cloud ? '保存并收拢工程' : '另存为 SKP'));
 
   const meshMessage = state.mesh_message ?? '';
   const message = meshMessage && !cloud && !state.busy && state.message === '选择要导入的数据。'
     ? '' : state.message;
-  setText('status', message);
+  setText('status', t(message));
   $('status').hidden = !message;
-  if (message.startsWith('GPU ·')) setText('status', '全量参照已就绪');
-  setText('mesh_status', meshMessage);
+  if ((message||'').startsWith('GPU ·')) setText('status', t('全量参照已就绪'));
+  setText('mesh_status', t(meshMessage));
   $('mesh_status').hidden = !meshMessage;
-  showError('');
   $('name').hidden = !cloud;
   if (cloud) {
     const type = gaussian ? '高斯' : '点云';
-    setText('name', type + ' · ' + cloud.name);
+    setText('name', t(type) + ' · ' + cloud.name);
     renderMetrics([
       [gaussian ? '原始高斯数' : '原始有效点', cloud.source],
       ['全量索引数', cloud.indexed],
@@ -289,17 +331,17 @@ function receive(state) {
         ['显存上传次数', cloud.frame.uploads]
       ] : []),
       ...(cloud.roi_count == null ? [] : [['范围内全量点', cloud.roi_count]])
-    ]);
-    setText('offset', '原坐标偏移（米） ' + cloud.offset.map(value => value.toFixed(3)).join('，'));
+    ].map(([key,value])=>[t(key),value]));
+    setText('offset',t('原坐标偏移（米） {0}',[cloud.offset.map(value => value.toFixed(3)).join(', ')]));
   } else {
     renderMetrics([]);
     setText('offset', '');
   }
 
   $('use_level').disabled = !state.elevation || state.busy;
-  setText('level_readout', state.elevation ? '模型 Z '+state.elevation.model_z.toFixed(4)+' m ｜源文件 Z '+state.elevation.source_z.toFixed(4)+' m' : '先在干净的地面取点，读取模型 Z 标高。');
+  setText('level_readout', state.elevation ? t('模型 Z {0} m ｜源文件 Z {1} m',[state.elevation.model_z.toFixed(4),state.elevation.source_z.toFixed(4)]) : t('先在干净的地面取点，读取模型 Z 标高。'));
   const options = state.options;
-  if (!editing) {
+  if (!editing && !preserveInputs && !holdLanguageInputs) {
     $('compatible').checked = state.compatible_import === true;
     for (const key of ['size','slice_z','slice_width','x','y','z','angle','plane_z','color','budget','gaussian_opacity']) {
       $(key).value = options[key] ?? (key === 'budget' ? 50000 : '');

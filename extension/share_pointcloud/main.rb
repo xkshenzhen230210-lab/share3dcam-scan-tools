@@ -11,6 +11,7 @@ module SHARE3DCAM
     ENGINE = File.join(ROOT, 'bin', 'share_cloud_engine_080.exe').freeze
     DICT = 'SHARE3DCAM_PointCloud_v1'.freeze
     M_TO_IN = 1.0 / 0.0254
+    require File.join(ROOT,'localization')
 
     # View drawing can pump Windows messages and re-enter timers/HtmlDialog callbacks.
     # Never change entities, attributes or live display buffers during those callbacks.
@@ -62,7 +63,7 @@ module SHARE3DCAM
 
     def self.report(error)
       warn("[赛尔点云] #{error.class}: #{error.message}\n#{error.backtrace&.first(6)&.join("\n")}")
-      UI.messagebox("操作未完成：#{error.message}")
+      PointCloud.messagebox("操作未完成：#{error.message}")
     end
 
     def self.session
@@ -95,11 +96,11 @@ module SHARE3DCAM
 
     def self.panel
       if Sketchup.version.to_i < 24 || Sketchup.platform != :platform_win
-        UI.messagebox('此试用版支持 Windows SketchUp 2024–2026。')
+        PointCloud.messagebox('此试用版支持 Windows SketchUp 2024–2026。')
         return
       end
       unless @dialog
-        @dialog = UI::HtmlDialog.new(dialog_title: '赛尔点云绘图助手 · 试用版', preferences_key: DICT,
+        @dialog = UI::HtmlDialog.new(dialog_title: 'SHARE3DCAM · 扫描绘图 / Scan Tools', preferences_key: DICT,
                                     scrollable: true, resizable: true, width: 432, height: 620,
                                     style: UI::HtmlDialog::STYLE_DIALOG)
         @dialog.set_file(File.join(ROOT, 'panel.html'))
@@ -126,28 +127,29 @@ module SHARE3DCAM
       s = session
       case name
       when 'ready' then nil
+      when 'language' then set_language(data.fetch('language'))
       when 'import_mode'
         Sketchup.write_default(DICT,'compatible_import',data['enabled']==true)
       when 'import'
-        path = UI.openpanel('导入点云：LAS / LAZ / PLY / XYZ / TXT / PTS', '',
+        path = PointCloud.openpanel('导入点云：LAS / LAZ / PLY / XYZ / TXT / PTS', '',
                             '点云|*.las;*.laz;*.ply;*.xyz;*.txt;*.pts||')
         s.import(path, data) if path
       when 'open_index'
-        folder = UI.select_directory(title:'选择已有点云索引文件夹（内含 cloud.json）',
+        folder = PointCloud.select_directory(title:'选择已有点云索引文件夹（内含 cloud.json）',
                                      directory:Sketchup.read_default(DICT,'index_root',''))
         s.open_index(folder) if folder
       when 'open_gaussian_index'
-        folder = UI.select_directory(title:'选择已有高斯索引文件夹（内含 cloud.json）',
+        folder = PointCloud.select_directory(title:'选择已有高斯索引文件夹（内含 cloud.json）',
                                      directory:Sketchup.read_default(DICT,'gaussian_index_root',Sketchup.read_default(DICT,'index_root','')))
         if folder
           s.open_index(folder, expected_kind:'gaussian')
           Sketchup.write_default(DICT,'gaussian_index_root',folder)
         end
       when 'import_mesh'
-        path = UI.openpanel('导入网格模型', '', '网格模型|*.glb;*.obj||')
+        path = PointCloud.openpanel('导入网格模型', '', '网格模型|*.glb;*.obj||')
         s.import_mesh(path, data) if path
       when 'import_gaussian'
-        path = UI.openpanel('将高斯 PLY 导入 SketchUp 主视窗', '', '高斯 PLY|*.ply||')
+        path = PointCloud.openpanel('将高斯 PLY 导入 SketchUp 主视窗', '', '高斯 PLY|*.ply||')
         s.import(path, data, gaussian:true) if path
       when 'settings' then s.apply(data)
       when 'edit_clip_box' then s.edit_clip_box
@@ -174,7 +176,7 @@ module SHARE3DCAM
         s.apply(data) unless data.empty?
         raise '请先退出组件或群组编辑，再使用点云描图。' if s.model.active_path
         s.model.select_tool(CaptureTool.new(s, name))
-        Sketchup.set_status_text('在主视图单击执行全量点捕捉；右键可结束、闭合或撤销上一点。')
+        PointCloud.status('在主视图单击执行全量点捕捉；右键可结束、闭合或撤销上一点。')
       when 'native_pushpull'
         CaptureTool.native_pushpull(s)
       when 'draw_rectangle', 'draw_circle', 'draw_polygon', 'draw_arc'
@@ -271,7 +273,7 @@ module SHARE3DCAM
       end
 
       def info
-        {options: @options, elevation: @picked_elevation, message: @message, mesh_message: @mesh_message, busy: !!@job,
+        {language: PointCloud.language, options: @options, elevation: @picked_elevation, message: @message, mesh_message: @mesh_message, busy: !!@job,
          compatible_import: Sketchup.read_default(DICT,'compatible_import',false),
          cloud: @cloud && {name:@cloud['source_name'], source:@cloud['valid_points'],
                           sample:@cloud['display_points'], visible:@points.size,
@@ -340,7 +342,7 @@ module SHARE3DCAM
         raise '显示上限为10000到100000点' unless (10_000..100_000).include?(limit)
         exe = ENGINE
         raise '转换器缺失，请完整安装RBZ。' unless File.file?(exe)
-        parent=UI.select_directory(title:'选择全量点云索引保存位置（建议空间充足的本地硬盘）',directory:Sketchup.read_default(DICT,'index_root',File.dirname(path)))
+        parent=PointCloud.select_directory(title:'选择全量点云索引保存位置（建议空间充足的本地硬盘）',directory:Sketchup.read_default(DICT,'index_root',File.dirname(path)))
         return unless parent
         Sketchup.write_default(DICT,'index_root',parent)
         @options['budget']=limit
@@ -660,7 +662,7 @@ module SHARE3DCAM
 
       def save_portable
         title = @cloud ? '保存 SKP 并收拢参照数据' : '另存为 SKP'
-        path = UI.savepanel(title, '', '参照绘图工程.skp')
+        path = PointCloud.savepanel(title, '', '参照绘图工程.skp')
         return unless path
 
         path += '.skp' unless File.extname(path).downcase == '.skp'
@@ -726,10 +728,11 @@ module SHARE3DCAM
     ShapeTool.include(ReferenceWheelZoom)
     ClipBoxTool.include(ReferenceWheelZoom)
     unless @command_registered
-      command = UI::Command.new('赛尔点云绘图助手') { PointCloud.panel }
-      command.tooltip = '导入点云、裁剪切片与捕捉描图'
+      command = UI::Command.new('赛尔点云绘图助手 / SHARE3DCAM Scan Tools') { PointCloud.panel }
+      command.tooltip = PointCloud.tr('导入点云、裁剪切片与捕捉描图')
       command.small_icon = File.join(ROOT,'icon.svg')
       command.large_icon = File.join(ROOT,'icon.svg')
+      @toolbar_command=command
       UI.menu('Extensions').add_item(command)
       toolbar = UI::Toolbar.new('赛尔点云绘图助手');toolbar.add_item(command);toolbar.restore
       @toolbar = toolbar

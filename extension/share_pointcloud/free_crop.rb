@@ -57,7 +57,7 @@ module SHARE3DCAM
    def initialize(session,keep);@session=session;@keep=keep;@points=[];end
    def activate
     @camera=@session.camera_snapshot
-    Sketchup.set_status_text('自由裁剪：逐点单击围出范围；Enter应用，Backspace退点，Esc取消。沿当前视线贯穿裁剪。')
+    PointCloud.status('自由裁剪：逐点单击围出范围；Enter应用，Backspace退点，Esc取消。沿当前视线贯穿裁剪。')
    end
    def onLButtonDown(_flags,x,y,view)
     @points<<[x.to_f,y.to_f];view.invalidate
@@ -75,7 +75,7 @@ module SHARE3DCAM
     raise '圈选期间视角已改变，请按Esc后重新圈选。' unless @camera==@session.camera_snapshot
     PointCloud.safely {@session.apply_free_polygon(@points,@keep,view);@session.model.tools.pop_tool}
    rescue StandardError=>e
-    Sketchup.set_status_text(e.message)
+    PointCloud.status(e.message)
    end
    def onReturn(view);finish(view);end
    def onKeyDown(key,_repeat,_flags,view)
@@ -86,8 +86,8 @@ module SHARE3DCAM
    def onCancel(reason,view);@session.model.tools.pop_tool if reason==0;view.invalidate;end
    def deactivate(view);view.invalidate;end
    def getMenu(menu)
-    menu.add_item(@keep ? '保留圈内并应用' : '移除圈内并应用') {finish(@session.model.active_view)}
-    menu.add_item('取消') {@session.model.tools.pop_tool}
+    menu.add_item(PointCloud.tr(@keep ? '保留圈内并应用' : '移除圈内并应用')) {finish(@session.model.active_view)}
+    menu.add_item(PointCloud.tr('取消')) {@session.model.tools.pop_tool}
    end
   end
   Session.prepend(FreeCropSession)

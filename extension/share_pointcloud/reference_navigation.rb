@@ -130,10 +130,10 @@ module SHARE3DCAM
 
       def show_status
         exit_hint = @return_to_previous ? 'Esc 返回原工具。' : 'Esc 结束当前拖动；选择其他工具退出。'
-        Sketchup.set_status_text(STATUS + exit_hint)
-        Sketchup.vcb_label = '视角'
+        PointCloud.status(STATUS + exit_hint)
+        PointCloud.vcb_label('视角')
         camera = @session.model.active_view.camera
-        Sketchup.vcb_value = camera.perspective? ? format('%.2f°',camera.fov) : '平行投影'
+        Sketchup.vcb_value = camera.perspective? ? format('%.2f°',camera.fov) : PointCloud.tr('平行投影')
       end
 
       def enableVCB?; true; end
@@ -163,7 +163,7 @@ module SHARE3DCAM
         return unless ReferenceNavigation.available?(@session)
         if (flags & CONSTRAIN_MODIFIER_MASK) != 0
           unless view.camera.perspective?
-            Sketchup.set_status_text('视角调整用于透视投影；当前平行投影请直接滚轮或拖动缩放。')
+            PointCloud.status('视角调整用于透视投影；当前平行投影请直接滚轮或拖动缩放。')
             return
           end
           @drag = {camera:ReferenceNavigation.capture(view), y:y.to_f, fov:true}
@@ -179,7 +179,7 @@ module SHARE3DCAM
 
       def onMouseMove(_flags,_x,y,view)
         unless @drag
-          view.tooltip = '对准要查看的扫描表面，滚轮或向上拖动放大'
+          view.tooltip = PointCloud.tr('对准要查看的扫描表面，滚轮或向上拖动放大')
           return
         end
         if @drag[:fov]
@@ -208,7 +208,7 @@ module SHARE3DCAM
 
       def onUserText(text,view)
         unless view.camera.perspective?
-          Sketchup.set_status_text('视角输入用于透视投影；平行投影请使用滚轮缩放。')
+          PointCloud.status('视角输入用于透视投影；平行投影请使用滚轮缩放。')
           return
         end
         degrees = Float(text.strip.sub(/(?:deg|°|度)\s*\z/i,''))
@@ -216,7 +216,7 @@ module SHARE3DCAM
         @drag = nil
         set_fov(view,degrees)
       rescue ArgumentError, TypeError
-        Sketchup.set_status_text('视角请输入 1–120 度，例如 35 或 35度。')
+        PointCloud.status('视角请输入 1–120 度，例如 35 或 35度。')
       end
 
       def finish
@@ -237,7 +237,7 @@ module SHARE3DCAM
       end
 
       def getMenu(menu)
-        menu.add_item('结束参照缩放') { finish }
+        menu.add_item(PointCloud.tr('结束参照缩放')) { finish }
       end
     end
   end
