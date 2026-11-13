@@ -177,6 +177,22 @@ module SHARE3DCAM
         Sketchup.set_status_text('在主视图单击执行全量点捕捉；右键可结束、闭合或撤销上一点。')
       when 'native_pushpull'
         CaptureTool.native_pushpull(s)
+      when 'draw_rectangle', 'draw_circle', 'draw_polygon', 'draw_arc'
+        kind = name.delete_prefix('draw_')
+        if s.cloud
+          s.require_cloud
+          raise '请先退出组件或群组编辑，再绘制扫描轮廓。' if s.model.active_path
+          s.apply(data) unless data.empty?
+          s.model.select_tool(ShapeTool.new(s,kind,segments:data.fetch('shape_segments',48),sides:data.fetch('polygon_sides',6)))
+        else
+          action = {'rectangle'=>'selectRectangleTool:', 'circle'=>'selectCircleTool:',
+                    'polygon'=>'selectPolygonTool:', 'arc'=>'selectArcTool:'}.fetch(kind)
+          Sketchup.send_action(action)
+        end
+        Sketchup.focus
+      when 'native_line', 'native_offset'
+        Sketchup.send_action(name=='native_line' ? 'selectLineTool:' : 'selectOffsetTool:')
+        Sketchup.focus
       when 'extrude_profile'
         selection = s.model.selection
         group = selection.first if selection.size == 1
@@ -701,11 +717,13 @@ module SHARE3DCAM
     end
 
     require File.join(ROOT,'capture_tool')
+    require File.join(ROOT,'shape_tool')
     require File.join(ROOT,'clip_box_tool')
     require File.join(ROOT,'reference_navigation')
     require File.join(ROOT,'navigation_events')
     require File.join(ROOT,'free_crop')
     CaptureTool.include(ReferenceWheelZoom)
+    ShapeTool.include(ReferenceWheelZoom)
     ClipBoxTool.include(ReferenceWheelZoom)
     unless @command_registered
       command = UI::Command.new('赛尔点云绘图助手') { PointCloud.panel }

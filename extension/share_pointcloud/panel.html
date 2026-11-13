@@ -59,7 +59,7 @@ input[type=range]{padding:0;accent-color:var(--red)}
 <header>
   <div class="brand">
     <img src="share3dcam-logo.png" width="952" height="135" alt="SHARE3DCAM">
-    <div class="brand-meta"><strong>赛尔电商中心</strong><small>绘图助手 · 0.9.8</small></div>
+    <div class="brand-meta"><strong>赛尔电商中心</strong><small>绘图助手 · 0.9.9</small></div>
   </div>
   <nav role="tablist" aria-label="插件功能">
     <button role="tab" id="tab-import" aria-controls="page-import" aria-selected="true">导入</button>
@@ -153,15 +153,33 @@ input[type=range]{padding:0;accent-color:var(--red)}
       <p class="hint">在视窗单击捕捉。← / → 锁 Y / X 轴，可输入带单位的长度。右键可闭合成面。</p>
     </section>
     <section class="card">
-      <div class="card-head"><h2>拉墙建模</h2></div>
-      <div id="profile_actions">
+      <div class="card-head"><h2>常用绘制</h2><span class="badge">原生几何</span></div>
+      <div class="tools">
+        <button onclick="tool('draw_rectangle')">矩形</button>
+        <button onclick="tool('draw_circle')">圆</button>
+        <button onclick="tool('draw_polygon')">正多边形</button>
+        <button onclick="tool('draw_arc')">圆心圆弧</button>
+      </div>
+      <p class="hint" data-scan hidden>先在扫描上捕捉起点或圆心，再定尺寸。开启平面描图时用指定标高；关闭时取首点标高，均水平绘制。</p>
+      <details data-scan hidden><summary>尺寸输入与曲线精度</summary>
+        <p class="hint">矩形：角点 → 对角点，或输入 3m,200mm。圆 / 正多边形：圆心 → 半径，或输入 500mm。圆弧：圆心 → 起点 → 逆时针终点方向，也可输入 90 表示角度。Esc 清除本次预览；右键结束。</p>
+        <div class="row"><label>圆 / 整圆基准段数<input id="shape_segments" type="number" min="12" max="360" step="1" value="48"></label><label>多边形边数<input id="polygon_sides" type="number" min="3" max="64" step="1" value="6"></label></div>
+      </details>
+      <p class="hint" data-native>使用 SU 原生工具，可直接吸附 Mesh 顶点、边和面；尺寸与分段数按原生工具提示输入。</p>
+    </section>
+    <section class="card">
+      <div class="card-head"><h2>推拉与修改</h2></div>
+      <div id="profile_actions" class="row">
         <button onclick="call('native_pushpull')">推拉已画轮廓（P）</button>
-
+        <button onclick="call('extrude_profile')">输入高度向上拉伸</button>
       </div>
 
       <p id="gaussian_extrude_hint" class="hint" hidden>描好水平轮廓后，也可右键「闭合并向上拉伸」。</p>
       <p class="hint" data-scan hidden>右键闭合成面后，自动进入群组并启用原生推拉。已有底面先选中群组，再点「进入群组并原生推拉」。推拉完成后退出群组，再描下一段。</p>
       <p class="hint" data-native>导入 Mesh 后，以可见的网格为参照。用直线（L）或矩形（R）画出墙底轮廓，再用推拉（P）输入墙高。</p>
+      <div class="row"><button onclick="call('native_line')">原生直线</button><button onclick="call('native_offset')">原生偏移</button></div>
+      <p class="hint">圆、矩形、正多边形完成后选中底面群组再推拉。圆弧是开放曲线，需补边闭合成面。偏移用于当前编辑层级的面或相连边。</p>
+      <p class="hint" data-scan hidden>俯视不易判断推拉方向时，可直接输入高度向上拉伸。高斯遮住底面时，在「查看 / 裁剪」降低参照不透明度。</p>
     </section>
   </div>
 
@@ -189,7 +207,7 @@ function call(name,payload={}){if(window.sketchup&&window.sketchup.action)window
 function fields(){let x={};['size','slice_z','slice_width','x','y','z','angle','plane_z','budget','gaussian_opacity'].forEach(k=>x[k]=Number(val(k)));['visible','box','slice','plane'].forEach(k=>x[k]=$(k).checked);x.color=val('color');if(Object.values(x).some(v=>typeof v==='number'&&!Number.isFinite(v)))throw Error('请输入有效数字');return x}
 function apply(){try{call('settings',fields())}catch(e){showError(e.message)}}
 function clip(){try{let c=['xmin','ymin','zmin','xmax','ymax','zmax'].map(k=>{if(!val(k).trim())throw Error('裁剪盒六个数值必须填全');return Number(val(k))});if(c.some(v=>!Number.isFinite(v)))throw Error('裁剪参数不是有效数字');let s=fields();s.clip=c;s.box=true;call('settings',s)}catch(e){showError(e.message)}}
-function tool(name){try{call(name,fields())}catch(e){showError(e.message)}}
+function tool(name){try{const payload=fields();if(name.startsWith('draw_')){payload.shape_segments=Number(val('shape_segments'));payload.polygon_sides=Number(val('polygon_sides'));if(!Number.isInteger(payload.shape_segments)||payload.shape_segments<12||payload.shape_segments>360||!Number.isInteger(payload.polygon_sides)||payload.polygon_sides<3||payload.polygon_sides>64)throw Error('圆弧段数请输入12–360的整数，多边形边数请输入3–64的整数')}call(name,payload)}catch(e){showError(e.message)}}
 function renderMetrics(rows){const host=$('metrics');while(host.children.length>rows.length)host.lastElementChild.remove();rows.forEach(([k,v],i)=>{let d=host.children[i];if(!d){d=document.createElement('div');host.append(d)}const text=k+'：'+v.toLocaleString();if(d.textContent!==text)d.textContent=text})}
 const tabs = Array.from(document.querySelectorAll('[role=tab]'));
 const scanContent = document.querySelectorAll('[data-scan]');
@@ -242,7 +260,6 @@ function receive(state) {
   $('gaussian_display').hidden = !gaussian;
   $('gaussian_extrude_hint').hidden = !gaussian;
 
-  $('profile_actions').classList.toggle('row', gaussian);
   $('point_range').hidden = gaussian;
   $('point_advanced').hidden = gaussian;
   $('export_full').disabled = (state.options.free_crop || []).length > 0;
