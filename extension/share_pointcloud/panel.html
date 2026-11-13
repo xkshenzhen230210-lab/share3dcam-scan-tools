@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>赛尔点云绘图助手</title>
+  <style>
+:root{color-scheme:light;--ink:#221c1d;--muted:#62595b;--line:#e8dfe0;--red:#aa1c2a;--wash:#fbf8f8}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--wash);color:var(--ink);font:13px/1.5 "Microsoft YaHei UI","Microsoft YaHei",sans-serif}
+header{position:sticky;top:0;z-index:2;background:#fff;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 15px 7px}
+.brand img{display:block;width:190px;max-width:54%;height:auto}
+.brand-meta{text-align:right}
+.brand-meta strong,.brand-meta small{display:block}
+.brand-meta strong{font-size:13px}
+.brand-meta small{color:var(--muted);font-size:11px}
+nav{display:grid;grid-template-columns:repeat(4,1fr);padding:0 8px;gap:2px}
+nav button{border:0;border-radius:0;border-bottom:3px solid transparent;padding:8px 2px 7px}
+nav button[aria-selected=true]{border-bottom-color:var(--red);color:var(--red);font-weight:700}
+main{padding:8px 10px 12px}
+.status-panel,.card{border:1px solid var(--line);border-radius:5px;background:#fff}
+.status-panel{padding:8px 10px;margin-bottom:10px;border-left:3px solid var(--red)}
+#status,#mesh_status,#error,#name{overflow-wrap:anywhere}
+#status,#mesh_status,#error{margin:0;white-space:pre-wrap}
+#name{font-size:12px;font-weight:700;margin-bottom:3px}
+#mesh_status,#error{margin-top:4px}
+#error{color:var(--red)}
+.card{padding:11px;margin-bottom:8px}
+.card-head{display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-bottom:7px}
+h2{font-size:15px;margin:0}
+.format{font-size:11px;color:var(--muted);text-align:right}
+p{margin:7px 0}
+p:last-child{margin-bottom:0}
+.hint,details{font-size:12px;color:var(--muted)}
+details{margin-top:9px}
+summary{cursor:pointer;font-weight:600}
+button,input,select{font:inherit}
+button{border:1px solid #d9cdcf;border-radius:5px;background:#fff;color:var(--ink);padding:7px;min-height:35px;cursor:pointer}
+button:hover{border-color:var(--red);background:#fff1f2}
+button.primary{background:var(--red);border-color:var(--red);color:#fff;font-weight:600}
+button.primary:hover{background:#881624}
+button:disabled{opacity:.55;cursor:default}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.row,.tools,.grid3{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:7px 0;align-items:end}
+.grid3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.row:last-child,.tools:last-child{margin-bottom:0}
+.wide{width:100%}
+label{display:block;color:var(--muted);font-size:12px}
+input,select{width:100%;color:var(--ink);margin-top:3px;border:1px solid #d9cdcf;border-radius:5px;padding:5px;background:#fff}
+input[type=checkbox]{width:auto;vertical-align:middle;margin:0 5px 1px 0;accent-color:var(--red)}
+input[type=range]{padding:0;accent-color:var(--red)}
+.check{margin:8px 0}
+.metric{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 8px;margin:8px 0;color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <img src="share3dcam-logo.png" width="952" height="135" alt="SHARE3DCAM">
+    <div class="brand-meta"><strong>赛尔电商中心</strong><small>绘图助手 · 0.9.8</small></div>
+  </div>
+  <nav role="tablist" aria-label="插件功能">
+    <button role="tab" id="tab-import" aria-controls="page-import" aria-selected="true">导入</button>
+    <button role="tab" id="tab-view" aria-controls="page-view" aria-selected="false" tabindex="-1">查看 / 裁剪</button>
+    <button role="tab" id="tab-draw" aria-controls="page-draw" aria-selected="false" tabindex="-1">绘图</button>
+    <button role="tab" id="tab-project" aria-controls="page-project" aria-selected="false" tabindex="-1">工程</button>
+  </nav>
+</header>
+<main>
+  <div class="status-panel" role="status">
+    <div id="name" hidden></div>
+    <p id="status">正在连接 SketchUp…</p>
+    <p id="mesh_status" hidden></p>
+    <p id="error" hidden></p>
+  </div>
+  <div id="page-import" role="tabpanel" aria-labelledby="tab-import">
+    <section class="card">
+      <div class="card-head"><h2>点云</h2><span class="format">LAS / LAZ / PLY / XYZ / TXT / PTS</span></div>
+      <div class="row">
+        <button id="import" class="primary" onclick="importScan('import')">选择点云文件</button>
+        <button id="open_index" onclick="call('open_index')">打开已有索引</button>
+      </div>
+    </section>
+    <section class="card">
+      <div class="card-head"><h2>Mesh 网格</h2><span class="format">GLB / OBJ</span></div>
+      <button id="import_mesh" class="primary wide" onclick="call('import_mesh',{unit:val('mesh_unit'),up:val('mesh_up')})">导入网格组件</button>
+      <details>
+        <summary>OBJ 单位、轴向与贴图</summary>
+        <div class="row"><label>OBJ 单位<select id="mesh_unit"><option value="m">米</option><option value="mm">毫米</option><option value="cm">厘米</option><option value="ft">英尺</option></select></label><label>OBJ 向上轴<select id="mesh_up"><option value="z">Z 向上</option><option value="y">Y 向上</option></select></label></div>
+        <p class="hint">保留 OBJ、MTL 和贴图之间的相对路径。</p>
+      </details>
+    </section>
+    <section class="card">
+      <div class="card-head"><h2>高斯</h2><span class="format">3DGS PLY</span></div>
+      <div class="row">
+        <button id="import_gaussian" class="primary" onclick="importScan('import_gaussian')">导入到 SU 主视窗</button>
+        <button id="open_gaussian_index" onclick="call('open_gaussian_index')">打开已有索引</button>
+      </div>
+      <p class="hint">已有索引可直接打开。</p>
+    </section>
+    <section class="card">
+      <label>点云 / 高斯源坐标单位
+        <select id="unit"><option value="m">米</option><option value="mm">毫米</option><option value="cm">厘米</option><option value="ft">英尺</option></select>
+      </label>
+      <details>
+        <summary>导入设置</summary>
+        <label class="check"><input id="compatible" type="checkbox" onchange="call('import_mode',{enabled:this.checked})">导入兼容模式</label>
+        <p class="hint">后台导入异常时可启用。打开已有索引时，选择包含 cloud.json 的文件夹。</p>
+      </details>
+      <p class="hint">每个 SKP 可关联一份点云或高斯参照。网格作为组件添加。</p>
+    </section>
+  </div>
+
+  <div id="page-view" role="tabpanel" aria-labelledby="tab-view" hidden>
+    <section class="card">
+      <div class="card-head"><h2>视角与显示</h2></div>
+      <div class="row"><button onclick="call('fit')">定位全部</button><button onclick="call('top')">俯视</button></div>
+      <div data-scan hidden>
+        <button style="width:100%" onclick="call('reference_zoom')">靠近查看（Z）</button>
+        <p class="hint">滚轮或上下拖动缩放，Esc 返回。</p>
+        <label class="check"><input type="checkbox" id="visible" checked onchange="apply()">显示点云 / 高斯参照</label>
+        <label id="cloud_color">点云颜色<select id="color" onchange="apply()"><option value="rgb">原始颜色</option><option value="height">按高程着色</option><option value="gray">统一灰色</option></select></label>
+        <div id="gaussian_display" hidden><label for="gaussian_opacity">参照不透明度 <output id="gaussian_opacity_value">65%</output></label><input id="gaussian_opacity" type="range" min="10" max="100" step="1" value="65" oninput="$('gaussian_opacity_value').value=this.value+'%'" onchange="apply()"><p class="hint">描图时调低不透明度，查看外观时调至 100%。</p></div><details><summary>移动、转正（米 / 度）</summary><div class="grid3"><label>X 位移<input id="x" type="number" value="0" step="0.1"></label><label>Y 位移<input id="y" type="number" value="0" step="0.1"></label><label>Z 位移<input id="z" type="number" value="0" step="0.1"></label></div><div class="row"><label>绕竖轴旋转<input id="angle" type="number" value="0" step="1"></label><button onclick="apply()">应用对齐</button></div><p class="hint">移动的是点云参照，不移动已经画好的实体。确定对齐后再开始描图。</p></details>
+      </div>
+    </section>
+    <section class="card" data-scan hidden>
+      <div class="card-head"><h2>裁剪范围</h2></div>
+      <button class="primary wide" onclick="call('edit_clip_box')">立体剪切盒</button>
+      <p class="hint">拖动六面手柄。按 Esc 结束编辑并保留剪切。</p>
+      <div class="row"><button onclick="call('selection_clip')">按选中实体裁剪</button><button onclick="call('reset_clip')">恢复全部</button></div>
+      <details><summary>自由裁剪</summary><p class="hint">在当前视图逐点围出范围，Enter 应用；沿视线贯穿裁剪。适用于点云和高斯。</p><div class="row"><button onclick="call('free_keep')">保留圈内</button><button onclick="call('free_remove')">移除圈内</button><button onclick="call('free_undo')">撤销上次圈选</button><button onclick="call('free_reset')">恢复自由裁剪</button></div></details><details><summary>手动设置裁剪盒（局部米）</summary><div class="grid3"><label>X 最小<input id="xmin" type="number" step="0.1"></label><label>Y 最小<input id="ymin" type="number" step="0.1"></label><label>Z 最小<input id="zmin" type="number" step="0.1"></label><label>X 最大<input id="xmax" type="number" step="0.1"></label><label>Y 最大<input id="ymax" type="number" step="0.1"></label><label>Z 最大<input id="zmax" type="number" step="0.1"></label></div><div class="row"><button onclick="clip()">应用裁剪盒</button><label class="check"><input type="checkbox" id="box" onchange="apply()">显示盒线</label></div></details><div class="row"><label class="check"><input type="checkbox" id="slice" onchange="apply()">启用水平切片</label><label>中心标高（米）<input type="number" id="slice_z" value="1.2" step="0.1"></label><label>厚度（米）<input type="number" id="slice_width" value="0.1" min="0.001" step="0.05"></label></div><button style="width:100%" onclick="apply()">应用切片</button>
+      <details id="point_advanced"><summary>高级：范围统计与导出（剪切盒）</summary><div id="point_range" class="row">
+        <button id="full_stats" onclick="call('full_stats')">统计范围内点数</button>
+        <button id="export_full" onclick="call('export_full')">导出裁剪 PLY</button>
+      </div></details>
+    </section>
+    <p class="hint" data-native>网格裁剪使用 SketchUp 的剖面工具。立体剪切盒适用于点云和高斯。</p>
+  </div>
+
+  <div id="page-draw" role="tabpanel" aria-labelledby="tab-draw" hidden>
+    <section class="card" data-scan hidden>
+      <div class="card-head"><h2>点云 / 高斯捕捉</h2></div>
+      <div class="row"><button onclick="tool('level')">拾取标高</button><button id="use_level" onclick="call('use_level')" disabled>设为绘图标高</button></div><p id="level_readout" class="hint">先在干净的地面取点，读取模型 Z 标高。</p><label class="check"><input type="checkbox" id="plane" onchange="apply()">俯视平面描图</label>
+      <label id="plane_height" hidden>绘图标高（米）<input type="number" id="plane_z" value="0" step="0.1" onchange="apply()"></label>
+      <p class="hint">打开俯视平面描图后，各落点使用同一标高，便于闭合成面。</p>
+      <div class="tools">
+        <button class="primary" onclick="tool('trace')">捕捉描线 / 成面</button>
+        <button onclick="tool('measure')">两点测距</button>
+        <details><summary>辅助点</summary><button onclick="tool('anchor')">采集辅助点</button></details>
+      </div>
+      <p class="hint">在视窗单击捕捉。← / → 锁 Y / X 轴，可输入带单位的长度。右键可闭合成面。</p>
+    </section>
+    <section class="card">
+      <div class="card-head"><h2>拉墙建模</h2></div>
+      <div id="profile_actions">
+        <button onclick="call('native_pushpull')">推拉已画轮廓（P）</button>
+
+      </div>
+
+      <p id="gaussian_extrude_hint" class="hint" hidden>描好水平轮廓后，也可右键「闭合并向上拉伸」。</p>
+      <p class="hint" data-scan hidden>右键闭合成面后，自动进入群组并启用原生推拉。已有底面先选中群组，再点「进入群组并原生推拉」。推拉完成后退出群组，再描下一段。</p>
+      <p class="hint" data-native>导入 Mesh 后，以可见的网格为参照。用直线（L）或矩形（R）画出墙底轮廓，再用推拉（P）输入墙高。</p>
+    </section>
+  </div>
+
+  <div id="page-project" role="tabpanel" aria-labelledby="tab-project" hidden>
+    <section class="card">
+      <div class="card-head"><h2>保存工程</h2></div>
+      <button id="save_project" class="primary wide" onclick="call('save')">另存为 SKP</button>
+      <p class="hint" data-scan hidden>点云或高斯随同名「点云数据」文件夹保存。移动或交付时，SKP 和该文件夹要一起复制。</p>
+      <p class="hint" data-native>Mesh 组件和绘制的几何一同保存在 SKP 内。</p>
+    </section>
+    <section class="card" data-scan hidden>
+      <details><summary>高级：运行诊断</summary><div id="metrics" class="metric"></div><p id="offset" class="hint"></p></details>
+    </section>
+    <section class="card" data-scan hidden>
+      <div class="card-head"><h2>恢复参照</h2></div>
+      <button class="wide" onclick="call('reload')">重新载入已保存缓存</button>
+    </section>
+  </div>
+  <input type="hidden" id="size" value="0"><input type="hidden" id="budget" value="50000">
+</main>
+<script>
+const $=id=>document.getElementById(id);const val=id=>$(id).value;let editing=false;
+document.addEventListener('focusin',e=>{if(e.target.matches('input,select'))editing=true});document.addEventListener('focusout',()=>editing=false);
+function call(name,payload={}){if(window.sketchup&&window.sketchup.action)window.sketchup.action(name,payload);else showError('请从 SketchUp 扩展程序菜单打开此面板。')}
+function fields(){let x={};['size','slice_z','slice_width','x','y','z','angle','plane_z','budget','gaussian_opacity'].forEach(k=>x[k]=Number(val(k)));['visible','box','slice','plane'].forEach(k=>x[k]=$(k).checked);x.color=val('color');if(Object.values(x).some(v=>typeof v==='number'&&!Number.isFinite(v)))throw Error('请输入有效数字');return x}
+function apply(){try{call('settings',fields())}catch(e){showError(e.message)}}
+function clip(){try{let c=['xmin','ymin','zmin','xmax','ymax','zmax'].map(k=>{if(!val(k).trim())throw Error('裁剪盒六个数值必须填全');return Number(val(k))});if(c.some(v=>!Number.isFinite(v)))throw Error('裁剪参数不是有效数字');let s=fields();s.clip=c;s.box=true;call('settings',s)}catch(e){showError(e.message)}}
+function tool(name){try{call(name,fields())}catch(e){showError(e.message)}}
+function renderMetrics(rows){const host=$('metrics');while(host.children.length>rows.length)host.lastElementChild.remove();rows.forEach(([k,v],i)=>{let d=host.children[i];if(!d){d=document.createElement('div');host.append(d)}const text=k+'：'+v.toLocaleString();if(d.textContent!==text)d.textContent=text})}
+const tabs = Array.from(document.querySelectorAll('[role=tab]'));
+const scanContent = document.querySelectorAll('[data-scan]');
+const nativeContent = document.querySelectorAll('[data-native]');
+
+function selectTab(tab) {
+  tabs.forEach(item => {
+    const selected = item === tab;
+    item.setAttribute('aria-selected', selected);
+    item.tabIndex = selected ? 0 : -1;
+    $(item.getAttribute('aria-controls')).hidden = !selected;
+  });
+}
+tabs.forEach((tab, index) => {
+  tab.addEventListener('click', () => selectTab(tab));
+  tab.addEventListener('keydown', event => {
+    const next = {
+      ArrowLeft: (index + tabs.length - 1) % tabs.length,
+      ArrowRight: (index + 1) % tabs.length,
+      Home: 0,
+      End: tabs.length - 1
+    }[event.key];
+    if (next === undefined) return;
+    event.preventDefault();
+    selectTab(tabs[next]);
+    tabs[next].focus();
+  });
+});
+
+function setText(id, value) {
+  const element = $(id);
+  if (element.textContent !== value) element.textContent = value;
+}
+function showError(message) {
+  setText('error', message);
+  $('error').hidden = !message;
+}
+function importScan(action) {
+  call(action, {unit: val('unit'), limit: 50000, compatible: $('compatible').checked});
+}
+
+function receive(state) {
+  const cloud = state.cloud;
+  const gaussian = cloud?.gaussian === true;
+  for (const id of ['import', 'open_index', 'import_mesh', 'import_gaussian', 'open_gaussian_index', 'save_project']) {
+    $(id).disabled = state.busy;
+  }
+  scanContent.forEach(element => element.hidden = !cloud);
+  nativeContent.forEach(element => element.hidden = Boolean(cloud));
+  $('gaussian_display').hidden = !gaussian;
+  $('gaussian_extrude_hint').hidden = !gaussian;
+
+  $('profile_actions').classList.toggle('row', gaussian);
+  $('point_range').hidden = gaussian;
+  $('point_advanced').hidden = gaussian;
+  $('export_full').disabled = (state.options.free_crop || []).length > 0;
+  $('full_stats').disabled = (state.options.free_crop || []).length > 0;
+  $('cloud_color').hidden = gaussian;
+  $('save_project').textContent = cloud ? '保存并收拢工程' : '另存为 SKP';
+
+  const meshMessage = state.mesh_message ?? '';
+  const message = meshMessage && !cloud && !state.busy && state.message === '选择要导入的数据。'
+    ? '' : state.message;
+  setText('status', message);
+  $('status').hidden = !message;
+  if (message.startsWith('GPU ·')) setText('status', '全量参照已就绪');
+  setText('mesh_status', meshMessage);
+  $('mesh_status').hidden = !meshMessage;
+  showError('');
+  $('name').hidden = !cloud;
+  if (cloud) {
+    const type = gaussian ? '高斯' : '点云';
+    setText('name', type + ' · ' + cloud.name);
+    renderMetrics([
+      [gaussian ? '原始高斯数' : '原始有效点', cloud.source],
+      ['全量索引数', cloud.indexed],
+      [cloud.full_resolution ? '深度可见点' : '当前显示点', cloud.visible],
+      ...(cloud.frame && cloud.full_resolution ? [
+        [gaussian ? '每帧提交高斯' : '每帧提交点', cloud.frame.submitted_points],
+        ['显存上传次数', cloud.frame.uploads]
+      ] : []),
+      ...(cloud.roi_count == null ? [] : [['范围内全量点', cloud.roi_count]])
+    ]);
+    setText('offset', '原坐标偏移（米） ' + cloud.offset.map(value => value.toFixed(3)).join('，'));
+  } else {
+    renderMetrics([]);
+    setText('offset', '');
+  }
+
+  $('use_level').disabled = !state.elevation || state.busy;
+  setText('level_readout', state.elevation ? '模型 Z '+state.elevation.model_z.toFixed(4)+' m ｜源文件 Z '+state.elevation.source_z.toFixed(4)+' m' : '先在干净的地面取点，读取模型 Z 标高。');
+  const options = state.options;
+  if (!editing) {
+    $('compatible').checked = state.compatible_import === true;
+    for (const key of ['size','slice_z','slice_width','x','y','z','angle','plane_z','color','budget','gaussian_opacity']) {
+      $(key).value = options[key] ?? (key === 'budget' ? 50000 : '');
+    }
+    for (const key of ['visible', 'box', 'slice', 'plane']) $(key).checked = options[key];
+    $('gaussian_opacity_value').value = val('gaussian_opacity') + '%';
+    ['xmin','ymin','zmin','xmax','ymax','zmax'].forEach((key, index) => {
+      $(key).value = options.clip?.[index] ?? '';
+    });
+  }
+  $('plane_height').hidden = !$('plane').checked;
+}
+document.addEventListener('DOMContentLoaded', () => call('ready'));
+</script>
+</body>
+</html>

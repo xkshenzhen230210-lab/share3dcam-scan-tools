@@ -1,0 +1,15 @@
+Third-party notices
+
+The MIT license at the repository root covers original project code.
+Third-party components retain their own licenses. See the original notices
+in extension/share_pointcloud/第三方许可 and its component inventory.
+
+The packaged Python converter uses NumPy, laspy, lazrs, trimesh, pycollada,
+Pillow and other dependencies listed in requirements-lock.txt. PyInstaller's
+license and bootloader exception are preserved in the third-party notices.
+The build links to Windows system D3D11/DXGI/D3DCompiler libraries and uses
+the public SketchUp Overlay API. No SketchUp SDK binary is bundled.
+
+SHARE3DCAM names and logos identify the project; the source-code license
+does not grant trademark rights or imply endorsement by SketchUp or Trimble.
+Scan Essentials is referenced only as workflow context. This project is independent.

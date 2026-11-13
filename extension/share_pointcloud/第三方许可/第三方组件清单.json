@@ -1,0 +1,117 @@
+[
+  {
+    "软件包": "numpy",
+    "版本": "2.5.4",
+    "原始许可文件": [
+      "numpy\\0_LICENSE.txt",
+      "numpy\\1_LICENSE.txt",
+      "numpy\\2_COPYING",
+      "numpy\\3_LICENSE",
+      "numpy\\4_dragon4_LICENSE.txt",
+      "numpy\\5_LICENSE.md",
+      "numpy\\6_LICENSE",
+      "numpy\\7_LICENSE.md",
+      "numpy\\8_LICENSE.txt",
+      "numpy\\9_LICENSE",
+      "numpy\\10_LICENSE.md",
+      "numpy\\11_LICENSE.md",
+      "numpy\\12_LICENSE.md",
+      "numpy\\13_LICENSE.md",
+      "numpy\\14_LICENSE.md",
+      "numpy\\15_LICENSE.md",
+      "numpy\\16_LICENSE.md",
+      "numpy\\17_LICENSE.txt",
+      "numpy\\18_LICENSE",
+      "numpy\\19_LICENSE.md"
+    ]
+  },
+  {
+    "软件包": "laspy",
+    "版本": "2.7.0",
+    "原始许可文件": [
+      "laspy\\0_LICENSE.txt"
+    ]
+  },
+  {
+    "软件包": "lazrs",
+    "版本": "0.8.2",
+    "原始许可文件": [
+      "lazrs\\0_LICENSE.txt"
+    ]
+  },
+  {
+    "软件包": "pyinstaller",
+    "版本": "6.22.3",
+    "原始许可文件": [
+      "pyinstaller\\0_COPYING.txt"
+    ]
+  },
+  {
+    "软件包": "altgraph",
+    "版本": "0.17.5",
+    "原始许可文件": [
+      "altgraph\\0_LICENSE"
+    ]
+  },
+  {
+    "软件包": "packaging",
+    "版本": "26.3",
+    "原始许可文件": [
+      "packaging\\0_LICENSE",
+      "packaging\\1_LICENSE.APACHE",
+      "packaging\\2_LICENSE.BSD"
+    ]
+  },
+  {
+    "软件包": "pefile",
+    "版本": "2024.8.26",
+    "原始许可文件": [
+      "pefile\\0_LICENSE"
+    ]
+  },
+  {
+    "软件包": "pywin32-ctypes",
+    "版本": "0.2.3",
+    "原始许可文件": [
+      "pywin32-ctypes\\0_LICENSE.txt"
+    ]
+  },
+  {
+    "软件包": "pillow",
+    "版本": "13.0.0",
+    "原始许可文件": [
+      "pillow\\0_LICENSE"
+    ]
+  },
+  {
+    "软件包": "pycollada",
+    "版本": "0.9.3",
+    "原始许可文件": [
+      "pycollada\\0_AUTHORS.md",
+      "pycollada\\1_COPYING"
+    ]
+  },
+  {
+    "软件包": "python-dateutil",
+    "版本": "4.0.0",
+    "原始许可文件": [
+      "python-dateutil\\0_AUTHORS.md",
+      "python-dateutil\\1_LICENSE"
+    ]
+  },
+  {
+    "软件包": "trimesh",
+    "版本": "5.2.0",
+    "原始许可文件": [
+      "trimesh\\0_LICENSE.md"
+    ]
+  },
+  {
+    "软件包": "tzdata",
+    "版本": "2026.6",
+    "原始许可文件": [
+      "tzdata\\0_LICENSE",
+      "tzdata\\1_LICENSE_APACHE"
+    ]
+  }
+]

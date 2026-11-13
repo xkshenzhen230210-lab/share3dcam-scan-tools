@@ -1,0 +1,15 @@
+altgraph==0.17.5
+laspy==2.7.0
+lazrs==0.8.2
+numpy==2.5.4
+packaging==26.3
+pefile==2024.8.26
+pyinstaller==6.22.3
+pyinstaller-hooks-contrib==2026.10
+pywin32-ctypes==0.2.3
+setuptools==84.2.1
+pillow==13.0.0
+pycollada==0.9.3
+python-dateutil==4.0.0
+trimesh==5.2.0
+tzdata==2026.6
