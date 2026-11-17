@@ -13,13 +13,14 @@ async function main(){
    if(name==='language' && window.testState){window.testState.language=payload.language;receive(window.testState)}
   }}});
   await page.goto(pathToFileURL(path.join(root,'extension/share_pointcloud/panel.html')).href);
-  await page.evaluate(()=>{
-   window.testState={language:'zh-CN',busy:false,message:'GPU · Test GPU · 高斯参照 1234',mesh_message:'',
+  await page.evaluate(mac=>{
+   window.testState={language:'zh-CN',compatible_import_available:!mac,busy:false,message:'GPU · Test GPU · 高斯参照 1234',mesh_message:'',
     options:{visible:true,box:true,slice:false,plane:true,size:0,plane_z:2.5,slice_z:1.2,slice_width:.1,x:0,y:0,z:0,angle:0,color:'rgb',budget:50000,gaussian_opacity:65,free_crop:[]},
     cloud:{name:'室内测试.ply',gaussian:true,source:1234,indexed:1234,visible:900,offset:[0,0,0],full_resolution:true,frame:{submitted_points:1234,uploads:1}},
     elevation:{model_z:2.5,source_z:-1}};
    receive(window.testState);
-  });
+  },process.argv.includes('--mac'));
+  assert.equal(await page.locator('#compatible').isDisabled(),process.argv.includes('--mac'));
   await page.locator('#tab-draw').click();
   await page.locator('#shape_segments').evaluate(el=>el.closest('details').open=true);
   await page.locator('#shape_segments').fill('96');

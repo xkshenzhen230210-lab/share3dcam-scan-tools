@@ -380,6 +380,7 @@ globalThis.SHARE_TRANSLATIONS = {
   "请输入大于零的半径，例如 500mm。": "Enter a positive radius, such as 500mm.",
   "重选起点": "Pick start point again",
   "绘图助手 · 0.10.0": "Scan Tools · 0.10.0",
+  "绘图助手 · {0}": "Scan Tools · {0}",
   "界面语言 / Interface language": "Interface language / 界面语言",
   "请输入有效数字": "Enter a valid number.",
   "裁剪盒六个数值必须填全": "Enter all six clipping-box coordinates.",
