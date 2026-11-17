@@ -48,7 +48,7 @@ float3 evaluateColor(Gaussian g,uint id,constant Params& p,device const half* sh
  }
  return saturate(color);
 }
-vertex Pixel splatVertex(uint vertex [[vertex_id]],uint instance [[instance_id]],device const Gaussian* gs [[buffer(0)]],constant Params& p [[buffer(1)]],device const uint* mask [[buffer(2)]],device const uint* order [[buffer(3)]],device const half* sh [[buffer(4)]]) {
+vertex Pixel splatVertex(uint vertexIndex [[vertex_id]],uint instance [[instance_id]],device const Gaussian* gs [[buffer(0)]],constant Params& p [[buffer(1)]],device const uint* mask [[buffer(2)]],device const uint* order [[buffer(3)]],device const half* sh [[buffer(4)]]) {
  uint id=order[instance];Gaussian g=gs[id];Pixel o;o.pos=float4(2,2,2,1);o.point_size=1;o.uv=0;o.color=0;o.id=id+1;
  if(!allowed(float3(g.mean),id,p,mask)||g.alpha<.00392)return o;
  float4 pos=project(float3(g.mean),p);if(pos.w<=0||pos.z< -pos.w||pos.z>pos.w)return o;
@@ -61,7 +61,7 @@ vertex Pixel splatVertex(uint vertex [[vertex_id]],uint instance [[instance_id]]
  xx+=.3;yy+=.3;float a=sqrt(max(xx,.3f)),b=xy/a,d=sqrt(max(yy-b*b,.3f));
  float2 extent=3.3*float2(a,abs(b)+d)/float2(p.right.w*.5,p.up.w*.5);
  if(any(abs(pos.xy/pos.w)>1+extent))return o;
- const uint corners[6]={0,1,2,2,1,3};uint corner=corners[vertex];o.uv=float2((corner&1)?3.3:-3.3,(corner&2)?3.3:-3.3);
+ const uint corners[6]={0,1,2,2,1,3};uint corner=corners[vertexIndex];o.uv=float2((corner&1)?3.3:-3.3,(corner&2)?3.3:-3.3);
  pos.xy+=float2(a*o.uv.x/(p.right.w*.5),(b*o.uv.x+d*o.uv.y)/(p.up.w*.5))*pos.w;
  pos.z=(pos.z+pos.w)*.5;o.pos=pos;o.color=float4(displayColor(evaluateColor(g,id,p,sh),g.mean.z,p),g.alpha*spread);return o;
 }
