@@ -1,9 +1,17 @@
 import ctypes as C
-import struct,tempfile,unittest
+import struct,tempfile,unittest,sys
 from pathlib import Path
 from native_library import LIBRARY
 
 class RetinaTests(unittest.TestCase):
+    @unittest.skipUnless(sys.platform=='darwin','Mac-specific error contract')
+    def test_crop_reset_requires_a_loaded_renderer(self):
+        api=C.CDLL(str(LIBRARY));api.pc_create.restype=C.c_void_p
+        api.pc_crop_reset.argtypes=[C.c_void_p];api.pc_destroy.argtypes=[C.c_void_p]
+        e=api.pc_create()
+        try:self.assertEqual(api.pc_crop_reset(e),-1)
+        finally:api.pc_destroy(e)
+
     def test_odd_width_readback_and_two_x_logical_pixel_picking(self):
         api=C.CDLL(str(LIBRARY));api.pc_create.restype=C.c_void_p
         signatures={'pc_destroy':[], 'pc_add_tile':[C.c_char_p,C.c_uint64], 'pc_load':[C.c_uint], 'pc_wait':[], 'pc_render_test':[C.POINTER(C.c_double),C.c_uint,C.c_uint], 'pc_pick':[C.c_double,C.c_double,C.c_double,C.c_double,C.c_double,C.c_void_p]}

@@ -7,16 +7,16 @@ Existing Windows binaries and the installed extension are not replaced.
 
 ## Implementation and verification
 
-- [ ] Portable platform paths and subprocess launch; tests cover macOS cache,
+- [x] Portable platform paths and subprocess launch; tests cover macOS cache,
   Chinese/spaced paths, unsupported architectures and executable validation.
-- [ ] Metal renderer with the existing C ABI: full point buffers; Gaussian
+- [x] Metal renderer with the existing C ABI: full point buffers; Gaussian
   covariance, SH and alpha; native camera/depth and logical/physical picking;
   clipping, slice and persistent polygon masks. No preview/LOD replacement.
-- [ ] arm64 macOS build of converter + dylib; package only matching binaries;
+- [x] arm64 macOS build of converter + dylib; package only matching binaries;
   test malformed/missing inputs and all exported symbols.
-- [ ] Shared bilingual UI regression checks and format/converter tests.
-- [ ] Native GPU tests on an Apple Silicon hosted runner if credentials allow.
-- [ ] Chinese/English installation, use and limitations; SHA256 release manifest.
+- [x] Shared bilingual UI regression checks and format/converter tests.
+- [x] Native GPU tests on an Apple Silicon hosted runner (Apple Paravirtual GPU).
+- [x] Chinese/English installation, use and limitations; SHA256 release manifest.
 - [ ] Actual SketchUp-on-Mac installation/reopen/Retina/tool interaction check.
 
 The last item needs a real licensed SketchUp Mac session. User has no Mac for

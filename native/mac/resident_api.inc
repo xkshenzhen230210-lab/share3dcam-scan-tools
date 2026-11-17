@@ -53,7 +53,7 @@ API int pc_pick(Engine* e,double x,double y,double radius,double logical_w,doubl
 }
 
 API int pc_crop_matrix(Engine* e,double* matrix){if(!e||!matrix)return -1;std::lock_guard<std::mutex> l(e->mutex);if(!e->frame_valid)return -1;std::copy(e->source_projection.begin(),e->source_projection.end(),matrix);return 0;}
-API int pc_crop_reset(Engine* e){if(!e)return -1;std::lock_guard<std::mutex> l(e->mutex);e->crop_mask.clear();e->crop_buffer=e->buffer(4);*static_cast<uint32_t*>(e->crop_buffer.contents)=1;e->frame_valid=false;return 0;}
+API int pc_crop_reset(Engine* e){if(!e||e->state!=2)return -1;try{std::lock_guard<std::mutex> l(e->mutex);auto next=e->buffer(4);*static_cast<uint32_t*>(next.contents)=1;e->crop_buffer=next;e->crop_mask.clear();e->frame_valid=false;return 0;}catch(const std::exception& x){e->fail(x);return -1;}}
 API int pc_crop_polygon(Engine* e,const double* matrix,const double* xy,uint32_t n,int keep){
  if(!e||e->state!=2||!matrix||!xy||n<3||n>256||(keep!=0&&keep!=1))return -1;
  for(int i=0;i<16;i++)if(!std::isfinite(matrix[i]))return -1;

@@ -20,7 +20,7 @@ def main():
             assert lib.pc_load(p,257)==0
             status=lib.pc_wait(p);info=json.loads(lib.pc_stats(p))
     finally:lib.pc_destroy(p)
-    report={'architecture':platform.machine(),'native_library_load':'passed','exported_symbols':names,'gpu_runtime_tests_passed':False,'sketchup_mac_acceptance_passed':False,'probe':info}
+    report={'architecture':platform.machine(),'macos':platform.mac_ver()[0],'native_library_load':'passed','exported_symbols':names,'gpu_runtime_tests_passed':False,'sketchup_mac_acceptance_passed':False,'probe':info}
     if status!=0:
         if 'No Metal GPU available' not in info.get('error',''):raise RuntimeError(info)
         report['gpu_status']='not run: hosted machine exposes no Metal GPU'
