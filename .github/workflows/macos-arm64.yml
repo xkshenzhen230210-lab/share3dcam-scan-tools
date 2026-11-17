@@ -25,6 +25,8 @@ jobs:
       - name: Converter tests
         run: PYTHONPATH=tests python -m unittest test_converter test_full_index test_queries test_worker test_compatibility -v
       - run: python tools/build_macos.py
+      - name: Frozen converter format checks
+        run: python tools/check_macos_frozen.py
       - name: Native Metal checks
         run: python tools/check_macos_native.py
       - name: Freeze and package verified native architecture
@@ -35,4 +37,5 @@ jobs:
           path: |
             release/macos-arm64/*
             build/macos-arm64/native-validation.json
+            build/macos-arm64/frozen-validation.json
           if-no-files-found: error

@@ -21,7 +21,7 @@ def main():
         p.chmod(0o755)
         subprocess.run(['codesign','--force','--sign','-',str(p)],check=True)
         subprocess.run(['codesign','--verify','--strict',str(p)],check=True)
-        subprocess.run(['lipo','-verify_arch','arm64',str(p)],check=True)
+        subprocess.run(['lipo',str(p),'-verify_arch','arm64'],check=True)
     print(json.dumps({'platform':platform.platform(),'architecture':platform.machine(),'native_build':'passed','sketchup_mac_acceptance':'not run'},indent=2))
 
 if __name__=='__main__':main()
