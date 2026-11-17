@@ -1,84 +1,36 @@
-# SHARE3DCAM 赛尔点云绘图助手
+# SHARE3DCAM 扫描绘图助手 · M 系列 Mac 测试分支
 
-[中文](README.md) | [English](README.en.md) | [English user guide](docs/User-Guide.en.md)
+[中文](README.md) | [English](README.en.md)
 
 <img src="extension/share_pointcloud/share3dcam-logo.png" width="260" alt="SHARE3DCAM">
 
-**赛尔电商中心 · Windows SketchUp 扫描参照与绘图工具 · MIT 开源**
+**赛尔电商中心 · 0.11.0-mac.1 · 中文 / English · MIT 开源**
 
-将点云、高斯和 Mesh 导入 SketchUp，对照扫描数据绘制原生线、面和墙体。
+本分支为 Apple Silicon 原生版，目标 SU 2024–2026，Intel Mac / Rosetta 不支持。
+点云全量显示和高斯渲染使用 Metal，绘图、裁剪、工程管理及中英界面共用现有实现。
 
-> 当前版本 **0.10.0，试用版**。目标为 Windows SketchUp 2024–2026；实际验证为 SketchUp 2026 与 RTX 4080 SUPER。2024/2025、其他显卡和长期稳定性仍需验证。
+已在 macOS 15 的 arm64 构建机完成编译、9 组独立转换器格式测试、9 项 Metal GPU
+测试和 32 组界面组合检查。**尚未通过 Mac 版 SketchUp 内安装、实际绘图及保存复开的验收。**
+测试包使用临时签名，未进行 Apple 开发者签名与公证。
 
-## 下载与安装
+- [中文安装与操作说明](docs/Mac安装与操作说明.md)
+- [English installation and operation](docs/Mac_Installation_and_Operation.md)
+- [通过的构建与测试记录](https://github.com/xkshenzhen230210-lab/share3dcam-scan-tools/actions/runs/44038413085)
+- 安装包在上述 Actions 记录的 Artifacts 中；完整解压后从 SU 扩展程序管理器安装 RBZ。
 
-前往 [Releases 下载页](https://github.com/xkshenzhen230210-lab/share3dcam-scan-tools/releases) 下载 `.rbz` 安装包。
+## 实现范围
 
-在 SketchUp 的扩展程序管理器中选择“安装扩展程序”，选择 RBZ，安装后重新启动 SketchUp。从“扩展程序 → 赛尔点云绘图助手”打开面板。客户使用安装包无需安装 Python。
+点云 LAS/LAZ/PLY/XYZ/TXT/PTS；Mesh GLB/OBJ 与贴图；标准 3DGS PLY 和已有索引；
+全量主视窗参照、标高与捕捉、闭合成面与向上拉伸、矩形/圆/多边形/圆弧、
+立体剪切盒、水平切片、自由裁剪、工程保存与参照收拢。
 
-## 主要功能
+格式边界、硬件限制与待完成验收项目见安装说明。未实现 OSGB 导入。
 
-| 工作 | 支持内容 |
-|---|---|
-| 点云 | LAS / LAZ / PLY / XYZ / TXT / PTS，完整索引、直接打开已有索引 |
-| 高斯 | 标准 3DGS PLY，保留形状、颜色、透明度，在 SU 主视窗作为参照 |
-| Mesh | GLB / OBJ 作为原生网格组件导入；OBJ 需携带 MTL 和贴图 |
-| 查看 | 原始颜色、俯视、参照缩放、高斯不透明度调整 |
-| 裁剪 | 立体剪切盒、水平切片、多边形保留圈内/移除圈内、撤销与恢复 |
-| 绘图 | 捕捉描线、矩形、圆、正多边形、圆心圆弧、原生推拉、输入高度向上拉伸、原生偏移、两点测距、辅助点 |
-| 语言 | 面板顶部中文 / English 切换，记住选择，覆盖插件工具提示和右键菜单 |
-| 标高 | 读取模型 Z 与源文件 Z，一键设为平面描图标高 |
-| 工程 | 保存 SKP 与关联的完整参照索引，后续恢复参照 |
+## 构建
 
-点云/高斯数据一次载入显存，移动和静止时都提交全量数据，不在操作期间切换成抽稀预览。硬件资源仍决定可载入规模：当前单份普通点云上限 1 亿点、标准高斯上限 2000 万个。
+原生 arm64 macOS：安装 requirements-macos.txt 中依赖，依次运行
+`python tools/build_macos.py`、`python tools/check_macos_frozen.py`、
+`python tools/check_macos_native.py`、`python tools/mac_release.py`。
+完整自动化流程见 `.github/workflows/macos-arm64.yml`。
 
-## 从扫描到绘图
-
-1. **导入**：选择点云、GLB/OBJ 或标准高斯 PLY；已有索引可直接打开。
-2. **查看/裁剪**：先定位范围，再用剪切盒或自由裁剪去掉干扰。按 Z 可围绕鼠标下的扫描点缩放。
-3. **拾取标高**：在干净地面多点核对，选择“设为绘图标高”。模型 Z 是局部坐标，不自动等同于现场 ±0.000 或海拔。
-4. **绘图**：开启平面描图，捕捉墙底轮廓；右键闭合成面，使用原生推拉建立墙体。
-5. **保存**：使用“保存并收拢工程”。交付点云/高斯工程时，SKP 与同名数据目录一起携带。
-
-常用绘制的点击顺序、半径/长宽输入与推拉方法，见 [常用绘制工具说明](docs/常用绘制工具.md)。扫描矩形、圆和正多边形生成水平原生底面，可继续推拉；开放圆弧需要补边闭合后才能成面。
-
-语言切换入口与覆盖范围，见 [中英双语界面说明](docs/中英双语界面.md)。
-
-### 自由裁剪
-
-“查看/裁剪 → 自由裁剪 → 保留圈内/移除圈内”，在主视窗依次单击至少三个角点，按 Enter 应用。Backspace 退点，Esc 取消。圈选期间保持相机不动；裁剪沿当前视线贯穿，结果绑定原始点位，转动相机后仍有效。
-
-自由裁剪是可撤销的**显示裁剪**，保留原文件。此版不导出自由裁剪后的 PLY；PLY 导出仅用于普通点云的剪切盒范围，自由裁剪活动时暂停该导出。Mesh 组件使用 SU 原生剖面工具。
-
-## 开发与构建
-
-参见 [构建与架构](docs/构建与架构.md)。源码仓库不包含客户模型、索引或已编译运行时；安装包在 Releases 提供。
-
-```powershell
-py -3.12 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements-lock.txt
-.\.venv\Scripts\python.exe tools/build.py
-```
-
-需要 Windows x64、Visual Studio 2022 C++ Build Tools 和 Windows SDK。完整构建会编译原生渲染器、运行测试、打包转换器并生成 RBZ。
-
-## 当前边界
-
-- 高斯支持标准 3DGS 属性布局；普通顶点 PLY 请通过点云入口导入。压缩或非标准高斯格式可能无法识别。
-- Mesh 目前支持 GLB/OBJ；OSGB 尚未实现。此插件不自动把点云或高斯重建为完整建筑实体。
-- 高斯取点使用可见高斯的原始中心，地面标高和尺寸应结合邻近点及现场基准核对。
-- C Overlay 不出现在 SU 的普通二维图片导出中；当前截图请使用真实视窗截图。
-- 当前是未签名试用扩展，不将测试通过等同于所有客户环境已验证。
-- 发布前首次整套测试曾出现一次 GPU 异常退出；相同环境随后连续三次整套复测通过，原因尚未定位，仍需验证长期稳定性。
-
-## 测试与问题反馈
-
-现有 **40 项自动测试**包含真实 D3D11 渲染、完整点数提交、显示/拾取投影、剪切恢复及点云/高斯多边形裁剪。测试数据在运行时合成，无需客户样本。
-
-提交 [Issue](https://github.com/xkshenzhen230210-lab/share3dcam-scan-tools/issues) 时请注明 SU 版本、显卡、文件格式、插件版本和复现步骤。不要上传未经允许的客户数据。
-
-## 许可与致谢
-
-项目原创代码采用 [MIT License](LICENSE)。第三方依赖保留各自许可，见 [第三方声明](THIRD_PARTY_NOTICES.txt) 和组件清单。
-
-本项目独立实现，与 Trimble / SketchUp 官方无隶属关系。SHARE3DCAM 标识用于项目署名；代码许可不授予商标权或官方背书。
+Windows 0.10.0 正式源码与原有试用包继续保留在 main 分支及 Releases，本分支未替换它们。
