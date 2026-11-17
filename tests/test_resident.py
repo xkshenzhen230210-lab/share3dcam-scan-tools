@@ -7,7 +7,7 @@ import tempfile
 import unittest
 
 ROOT=Path(__file__).resolve().parents[1]
-DLL=ROOT/'extension/share_pointcloud/bin/share_cloud_resident_097.dll'
+from native_library import LIBRARY as DLL
 
 class ResidentTests(unittest.TestCase):
  def test_off_center_native_projection_controls_display_and_pick(self):

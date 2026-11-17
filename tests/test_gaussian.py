@@ -11,7 +11,7 @@ import numpy as np
 from converter.gaussian import DC, MEAN, RECORD, ROT, SCALE, prepare_gaussian
 
 
-DLL = Path(__file__).resolve().parents[1] / 'extension/share_pointcloud/bin/share_cloud_resident_097.dll'
+from native_library import LIBRARY as DLL
 
 
 class GaussianTests(unittest.TestCase):

@@ -1,0 +1,38 @@
+name: Apple Silicon macOS test build
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/macos-apple-silicon]
+    paths: ['native/**', 'converter/**', 'extension/**', 'tests/**', 'tools/**', 'requirements-macos.txt', '.github/workflows/macos-arm64.yml']
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: arm64
+      - name: Require native Apple Silicon
+        run: test "$(uname -m)" = arm64
+      - run: python -m pip install -r requirements-macos.txt
+      - run: python -m unittest discover -s tests -p test_macos_package.py -v
+      - run: ruby tests/platform_test.rb
+      - run: node tools/check_i18n.js
+      - name: Converter tests
+        run: PYTHONPATH=tests python -m unittest test_converter test_full_index test_queries test_worker test_compatibility -v
+      - run: python tools/build_macos.py
+      - name: Native Metal checks
+        run: python tools/check_macos_native.py
+      - name: Freeze and package verified native architecture
+        run: python tools/mac_release.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SHARE3DCAM-AppleSilicon-bilingual-test
+          path: |
+            release/macos-arm64/*
+            build/macos-arm64/native-validation.json
+          if-no-files-found: error

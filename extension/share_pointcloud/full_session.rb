@@ -89,9 +89,9 @@ module SHARE3DCAM
       end
 
       def start_worker
-        @ipc=File.join(ENV.fetch('LOCALAPPDATA'),'SHARE3DCAM','PointCloudSessions',SecureRandom.uuid)
+        @ipc=File.join(Platform.session_root,SecureRandom.uuid)
         FileUtils.mkdir_p(@ipc)
-        exe=ENGINE;log=File.join(@ipc,'process.log')
+        exe=Platform.prepare_engine!(ENGINE);log=File.join(@ipc,'process.log')
         @worker_pid=Process.spawn(exe,'--serve','--cache',@index_folder,'--session',@ipc,'--parent',Process.pid.to_s,out:log,err:log)
         @requests={};@last_view_signature=nil
         @view_observer=CloudViewEvents.new(self);@observed_view=@model.active_view;@observed_view.add_observer(@view_observer)

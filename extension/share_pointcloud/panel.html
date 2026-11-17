@@ -69,7 +69,7 @@ input[type=range]{padding:0;accent-color:var(--red)}
 <header>
   <div class="brand">
     <img src="share3dcam-logo.png" width="952" height="135" alt="SHARE3DCAM">
-    <div class="brand-meta"><strong>赛尔电商中心</strong><small>绘图助手 · 0.10.0</small></div>
+    <div class="brand-meta"><strong>赛尔电商中心</strong><small>绘图助手 · 0.11.0-mac.1</small></div>
   </div>
   <div class="language-row">
     <span class="language-caption">界面语言 / Interface language</span>
@@ -342,7 +342,8 @@ function renderState(state,preserveInputs=false) {
   setText('level_readout', state.elevation ? t('模型 Z {0} m ｜源文件 Z {1} m',[state.elevation.model_z.toFixed(4),state.elevation.source_z.toFixed(4)]) : t('先在干净的地面取点，读取模型 Z 标高。'));
   const options = state.options;
   if (!editing && !preserveInputs && !holdLanguageInputs) {
-    $('compatible').checked = state.compatible_import === true;
+    $('compatible').checked = state.compatible_import_available !== false && state.compatible_import === true;
+    $('compatible').disabled = state.compatible_import_available === false;
     for (const key of ['size','slice_z','slice_width','x','y','z','angle','plane_z','color','budget','gaussian_opacity']) {
       $(key).value = options[key] ?? (key === 'budget' ? 50000 : '');
     }

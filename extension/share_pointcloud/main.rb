@@ -8,7 +8,8 @@ require 'tmpdir'
 module SHARE3DCAM
   module PointCloud
     ROOT = File.dirname(__FILE__).freeze
-    ENGINE = File.join(ROOT, 'bin', 'share_cloud_engine_080.exe').freeze
+    require File.join(ROOT,'platform')
+    ENGINE = Platform.engine_path(ROOT).freeze
     DICT = 'SHARE3DCAM_PointCloud_v1'.freeze
     M_TO_IN = 1.0 / 0.0254
     require File.join(ROOT,'localization')
@@ -95,8 +96,8 @@ module SHARE3DCAM
     end
 
     def self.panel
-      if Sketchup.version.to_i < 24 || Sketchup.platform != :platform_win
-        PointCloud.messagebox('此试用版支持 Windows SketchUp 2024–2026。')
+      if Sketchup.version.to_i < 24 || !Platform.supported?
+        PointCloud.messagebox('需要 Windows 或 M 系列 Mac 原生版 SketchUp 2024–2026；不支持 Intel Mac 或 Rosetta。')
         return
       end
       unless @dialog
@@ -275,6 +276,7 @@ module SHARE3DCAM
       def info
         {language: PointCloud.language, options: @options, elevation: @picked_elevation, message: @message, mesh_message: @mesh_message, busy: !!@job,
          compatible_import: Sketchup.read_default(DICT,'compatible_import',false),
+         compatible_import_available: Sketchup.platform == :platform_win,
          cloud: @cloud && {name:@cloud['source_name'], source:@cloud['valid_points'],
                           sample:@cloud['display_points'], visible:@points.size,
                           offset:@cloud['origin_m'], has_color:@cloud['has_color']}}
@@ -340,7 +342,7 @@ module SHARE3DCAM
         raise '单位不正确' unless %w[m mm cm ft].include?(unit)
         limit = Integer(data['limit'])
         raise '显示上限为10000到100000点' unless (10_000..100_000).include?(limit)
-        exe = ENGINE
+        exe = Platform.prepare_engine!(ENGINE)
         raise '转换器缺失，请完整安装RBZ。' unless File.file?(exe)
         parent=PointCloud.select_directory(title:'选择全量点云索引保存位置（建议空间充足的本地硬盘）',directory:Sketchup.read_default(DICT,'index_root',File.dirname(path)))
         return unless parent
@@ -349,7 +351,7 @@ module SHARE3DCAM
         cache = File.join(parent, (gaussian ? '高斯索引_' : '点云索引_') + SecureRandom.uuid)
         FileUtils.mkdir_p(cache)
         log = File.join(cache, 'process.log')
-        compatible=data['compatible']==true
+        compatible=data['compatible']==true && Sketchup.platform == :platform_win
         Sketchup.write_default(DICT,'compatible_import',compatible)
         command=[exe,gaussian ? '--gaussian' : '--index','--source',path,'--out',cache,'--limit',limit.to_s,'--unit',unit]
         command << '--compatible-cpu' if compatible
@@ -468,7 +470,7 @@ module SHARE3DCAM
           end
         end
 
-        exe = ENGINE
+        exe = Platform.prepare_engine!(ENGINE)
         raise '转换器缺失，请完整安装 RBZ。' unless File.file?(exe)
         cache = Dir.mktmpdir('share3dcam-mesh-')
         log = File.join(cache, 'process.log')

@@ -502,5 +502,6 @@ globalThis.SHARE_TRANSLATIONS = {
   "第{0}行不是数字坐标": "Line {0}: non-numeric coordinates",
   "PLY属性类型不支持：{0}": "Unsupported PLY property type: {0}",
   "GPU内核编译失败：{0}": "GPU kernel compilation failed: {0}",
-  "OpenCL错误 {0}": "OpenCL error {0}"
+  "OpenCL错误 {0}": "OpenCL error {0}",
+  "需要 Windows 或 M 系列 Mac 原生版 SketchUp 2024–2026；不支持 Intel Mac 或 Rosetta。": "Requires native Windows or Apple Silicon SketchUp 2024–2026. Intel Macs and Rosetta are unsupported."
 };

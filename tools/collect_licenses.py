@@ -1,11 +1,13 @@
 from pathlib import Path
 from importlib import metadata
-import shutil,sys,json
+import shutil,sys,json,os
 R=Path(__file__).resolve().parents[1]
 out=R/'extension/share_pointcloud/第三方许可'
 out.mkdir(parents=True,exist_ok=True)
 records=[]
-for name in ['numpy','laspy','lazrs','pyinstaller','altgraph','packaging','pefile','pywin32-ctypes','pillow','pycollada','python-dateutil','trimesh','tzdata']:
+names=['numpy','laspy','lazrs','pyinstaller','altgraph','packaging','pillow','pycollada','python-dateutil','trimesh']
+names+=['pefile','pywin32-ctypes','tzdata'] if os.name=='nt' else ['macholib']
+for name in names:
     dist=metadata.distribution(name)
     files=[]
     for item in dist.files or []:

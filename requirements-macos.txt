@@ -1,0 +1,9 @@
+# Only runtime conversion dependencies plus the native macOS freezer.
+# Deliberately excludes Windows-only pefile and pywin32-ctypes.
+laspy==2.7.0
+lazrs==0.8.2
+numpy==2.5.4
+pillow==13.0.0
+pycollada==0.9.3
+trimesh==5.2.0
+pyinstaller==6.22.3

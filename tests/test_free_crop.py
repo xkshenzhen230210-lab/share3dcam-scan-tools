@@ -3,10 +3,11 @@ import json, struct, tempfile, unittest
 from pathlib import Path
 import numpy as np
 from converter.gaussian import RECORD
+from native_library import LIBRARY as DLL
 
 class FreeCropTests(unittest.TestCase):
  def test_concave_keep_remove_reset_camera_and_pick(self):
-  api=C.CDLL(str(Path(__file__).resolve().parents[1]/'extension/share_pointcloud/bin/share_cloud_resident_097.dll'))
+  api=C.CDLL(str(DLL))
   api.pc_create.restype=C.c_void_p
   signatures={'pc_add_tile':[C.c_char_p,C.c_uint64],'pc_add_gaussians':[C.c_char_p,C.c_uint64,C.c_char_p,C.c_uint32], 'pc_load':[C.c_uint32],'pc_wait':[], 'pc_destroy':[], 'pc_crop_matrix':[C.c_void_p], 'pc_crop_polygon':[C.c_void_p,C.c_void_p,C.c_uint32,C.c_int], 'pc_crop_reset':[], 'pc_render_test':[C.c_void_p,C.c_uint32,C.c_uint32], 'pc_read_ids':[C.c_void_p,C.c_uint32], 'pc_pick':[C.c_double,C.c_double,C.c_double,C.c_double,C.c_double,C.c_void_p]}
   for name,args in signatures.items():getattr(api,name).argtypes=[C.c_void_p,*args]
