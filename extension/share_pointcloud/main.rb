@@ -8,7 +8,8 @@ require 'tmpdir'
 module SHARE3DCAM
   module PointCloud
     ROOT = File.dirname(__FILE__).freeze
-    ENGINE = File.join(ROOT, 'bin', 'share_cloud_engine_080.exe').freeze
+    require File.join(ROOT,'platform')
+    ENGINE = Platform.engine_path(ROOT).freeze
     DICT = 'SHARE3DCAM_PointCloud_v1'.freeze
     M_TO_IN = 1.0 / 0.0254
     require File.join(ROOT,'localization')
@@ -69,23 +70,29 @@ module SHARE3DCAM
     def self.session
       model = Sketchup.active_model
       if !@session || @session.model != model || !@session.display_attached?
-        if @session && !@session.display_attached? && @session.respond_to?(:forget_closed_model_overlay)
-          @session.forget_closed_model_overlay
-        end
-        @session.deactivate if @session
-        @session = Session.new(model)
-        @session.restore
+        replace_session(model, closed: @session && !@session.display_attached?)
       end
       @session
+    end
+
+    def self.replace_session(model, closed:)
+      if @session
+        closed = !@session.model.valid? if Sketchup.platform == :platform_osx
+        @session.forget_closed_model_overlay if closed && @session.respond_to?(:forget_closed_model_overlay)
+        @session.deactivate
+      end
+      @session = Session.new(model)
+      @session.restore
     end
 
     def self.model_opened(model)
       # SketchUp can reuse the active Model wrapper when opening another SKP.
       # Its overlays are nevertheless cleared, so model equality is not a reset signal.
-      @session.forget_closed_model_overlay if @session && @session.respond_to?(:forget_closed_model_overlay)
-      @session.deactivate if @session
-      @session = Session.new(model)
-      @session.restore
+      if Sketchup.platform == :platform_osx
+        session
+      else
+        replace_session(model, closed: true)
+      end
       publish
     end
 
@@ -146,8 +153,13 @@ module SHARE3DCAM
           Sketchup.write_default(DICT,'gaussian_index_root',folder)
         end
       when 'import_mesh'
-        path = PointCloud.openpanel('导入网格模型', '', '网格模型|*.glb;*.obj||')
+        path = PointCloud.openpanel('导入网格模型', '', '网格模型|*.glb;*.obj;*.stl||')
         s.import_mesh(path, data) if path
+      when 'convert_stl'
+        path = PointCloud.openpanel('选择要转换的 GLB 或 OBJ', '', '网格模型|*.glb;*.obj||')
+        s.convert_stl(path, data) if path
+      when 'export_stl'
+        s.export_stl(data)
       when 'import_gaussian'
         path = PointCloud.openpanel('将高斯 PLY 导入 SketchUp 主视窗', '', '高斯 PLY|*.ply||')
         s.import(path, data, gaussian:true) if path
@@ -267,7 +279,7 @@ module SHARE3DCAM
       end
 
       def display_attached?
-        @model.overlays.include?(@overlay)
+        @model.valid? && @model.overlays.include?(@overlay)
       rescue TypeError
         false
       end
@@ -275,6 +287,7 @@ module SHARE3DCAM
       def info
         {language: PointCloud.language, options: @options, elevation: @picked_elevation, message: @message, mesh_message: @mesh_message, busy: !!@job,
          compatible_import: Sketchup.read_default(DICT,'compatible_import',false),
+         compatible_import_available: Sketchup.platform == :platform_win,
          cloud: @cloud && {name:@cloud['source_name'], source:@cloud['valid_points'],
                           sample:@cloud['display_points'], visible:@points.size,
                           offset:@cloud['origin_m'], has_color:@cloud['has_color']}}
@@ -340,7 +353,7 @@ module SHARE3DCAM
         raise '单位不正确' unless %w[m mm cm ft].include?(unit)
         limit = Integer(data['limit'])
         raise '显示上限为10000到100000点' unless (10_000..100_000).include?(limit)
-        exe = ENGINE
+        exe = Platform.prepare_engine!(ENGINE)
         raise '转换器缺失，请完整安装RBZ。' unless File.file?(exe)
         parent=PointCloud.select_directory(title:'选择全量点云索引保存位置（建议空间充足的本地硬盘）',directory:Sketchup.read_default(DICT,'index_root',File.dirname(path)))
         return unless parent
@@ -349,7 +362,7 @@ module SHARE3DCAM
         cache = File.join(parent, (gaussian ? '高斯索引_' : '点云索引_') + SecureRandom.uuid)
         FileUtils.mkdir_p(cache)
         log = File.join(cache, 'process.log')
-        compatible=data['compatible']==true
+        compatible=data['compatible']==true && Sketchup.platform == :platform_win
         Sketchup.write_default(DICT,'compatible_import',compatible)
         command=[exe,gaussian ? '--gaussian' : '--index','--source',path,'--out',cache,'--limit',limit.to_s,'--unit',unit]
         command << '--compatible-cpu' if compatible
@@ -361,16 +374,18 @@ module SHARE3DCAM
 
       def poll
         return unless @job
+        return if Sketchup.platform == :platform_osx && @model != Sketchup.active_model
         job_kind = @job[:kind]
+        cache = @job[:cache]
         # Reap once. If status.json is briefly locked after exit, the next tick
         # can still read it without calling waitpid again on a reaped child.
         @job[:exit_status] ||= Process.waitpid2(@job[:pid], Process::WNOHANG)&.last
         status = read_import_status
         return unless status
 
-        cache = @job[:cache]
         if status['state'] == 'complete'
           mesh_name = @job[:mesh_name]
+          target = @job[:target]
           finish_job
           if job_kind == :mesh
             import_prepared_mesh(File.join(cache, 'mesh.dae'), mesh_name)
@@ -380,6 +395,8 @@ module SHARE3DCAM
             rescue SystemCallError => e
               warn("[赛尔点云] 网格临时文件未清理：#{e.message}")
             end
+          elsif job_kind == :stl
+            @mesh_message = "STL 转换完成：#{status.fetch('triangles')} 个三角面。#{target}"
           else
             open_index(cache)
           end
@@ -389,12 +406,14 @@ module SHARE3DCAM
         elsif @job[:exit_status]
           finish_job
           message = '转换进程已退出，未收到完成状态。'
-          if job_kind != :mesh && File.file?(File.join(cache, 'cloud.json'))
+          if ![:mesh, :stl].include?(job_kind) && File.file?(File.join(cache, 'cloud.json'))
             message += " 如需校验并继续加载，请用“打开已有索引”选择：#{cache}"
           else
             message += ' 请检查文件格式和磁盘空间后重新导入。'
           end
           import_message(job_kind, message)
+        elsif job_kind == :stl
+          @mesh_message = '正在后台转换 STL…'
         elsif job_kind == :mesh
           @mesh_message = '正在后台转换网格和贴图…'
         elsif job_kind == :gaussian
@@ -407,6 +426,10 @@ module SHARE3DCAM
         finish_job
         import_message(job_kind, "导入未完成：#{e.message}")
         PointCloud.publish
+      ensure
+        if job_kind == :stl && !@job && cache && File.directory?(cache)
+          FileUtils.remove_entry_secure(cache) rescue nil
+        end
       end
 
       def read_import_status
@@ -422,7 +445,7 @@ module SHARE3DCAM
         @job[:status_retry_started] ||= now
         if now - @job[:status_retry_started] >= 5
           message = "暂时无法读取导入状态（#{e.class}）。"
-          message += "如后台已生成完整索引，请选择“打开已有索引”：#{@job[:cache]}" unless @job[:kind] == :mesh
+          message += "如后台已生成完整索引，请选择“打开已有索引”：#{@job[:cache]}" unless [:mesh, :stl].include?(@job[:kind])
           raise message
         end
         # Retry on the next timer tick, without sleeping on SketchUp's UI thread.
@@ -456,7 +479,7 @@ module SHARE3DCAM
         raise '上一项导入仍在进行，请等待。' if @job
         raise '请先退出组件或群组编辑。' if @model.active_path
         suffix = File.extname(path).downcase
-        raise '请选择 OBJ 或 GLB 文件。' unless %w[.obj .glb].include?(suffix)
+        raise '请选择 GLB、OBJ 或 STL 文件。' unless %w[.obj .glb .stl].include?(suffix)
         name = File.basename(path, File.extname(path))
         if suffix == '.glb'
           begin
@@ -468,12 +491,12 @@ module SHARE3DCAM
           end
         end
 
-        exe = ENGINE
+        exe = Platform.prepare_engine!(ENGINE)
         raise '转换器缺失，请完整安装 RBZ。' unless File.file?(exe)
         cache = Dir.mktmpdir('share3dcam-mesh-')
         log = File.join(cache, 'process.log')
         command = [exe, '--mesh', '--source', path, '--out', cache, '--unit', data.fetch('unit', 'm'), '--up', data.fetch('up', 'z')]
-        command << '--compatible-cpu' if Sketchup.read_default(DICT, 'compatible_import', false)
+        command << '--compatible-cpu' if Sketchup.platform == :platform_win && Sketchup.read_default(DICT, 'compatible_import', false)
         pid = Process.spawn(*command, out:log, err:log)
         @job = {pid:pid, cache:cache, start:Time.now, kind: :mesh, mesh_name:name}
         @mesh_message = '正在后台转换网格和贴图…'
@@ -481,11 +504,70 @@ module SHARE3DCAM
       end
 
       def import_message(kind, message)
-        if kind == :mesh
+        if [:mesh, :stl].include?(kind)
           @mesh_message = message
         else
           @message = message
         end
+      end
+
+      def stl_target(directory, name)
+        path = PointCloud.savepanel('保存 STL', directory, name)
+        return unless path
+
+        if File.extname(path).empty?
+          path += '.stl'
+          if File.exist?(path) || File.symlink?(path)
+            raise '同名 STL 已存在，请在保存窗口中明确选择该文件，或另取文件名。'
+          end
+        end
+        raise '请使用 .stl 文件扩展名。' unless File.extname(path).casecmp?('.stl')
+        path
+      end
+
+      def stl_output_unit(data)
+        unit = data.fetch('output_unit', 'mm')
+        raise 'STL 输出文件或单位无效。' unless %w[mm cm m].include?(unit)
+        unit
+      end
+
+      def convert_stl(source, data)
+        raise '上一项导入仍在进行，请等待。' if @job
+        raise '请选择 GLB 或 OBJ 文件。' unless %w[.glb .obj].include?(File.extname(source).downcase)
+        unit = stl_output_unit(data)
+        target = stl_target(File.dirname(source), "#{File.basename(source, '.*')}.stl")
+        return unless target
+
+        engine = Platform.prepare_engine!(ENGINE)
+        cache = Dir.mktmpdir('share3dcam-stl-')
+        log = File.join(cache, 'process.log')
+        pid = Process.spawn(engine, '--to-stl', '--source', source, '--out', cache, '--target', target,
+                            '--unit', data.fetch('unit', 'm'), '--up', data.fetch('up', 'z'), '--output-unit', unit,
+                            out: log, err: log)
+        @job = {pid: pid, cache: cache, start: Time.now, kind: :stl, target: target}
+        @mesh_message = '正在后台转换 STL…'
+        @timer = UI.start_timer(0.4, true) { PointCloud.safely { poll } }
+      rescue StandardError
+        FileUtils.remove_entry_secure(cache) if cache && !@job
+        raise
+      end
+
+      def export_stl(data)
+        raise '上一项导入仍在进行，请等待。' if @job
+        raise '请先退出组件或群组编辑。' if @model.active_path
+        raise '请先选中要导出的面、群组或组件。' if @model.selection.empty?
+        unit = stl_output_unit(data)
+        target = stl_target(File.dirname(@model.path), '选中几何.stl')
+        return unless target
+
+        Dir.mktmpdir('.share3dcam-stl-', File.dirname(target)) do |folder|
+          candidate = File.join(folder, 'export.stl')
+          ok = @model.export(candidate, units: unit, format: 'binary', selectionset_only: true, show_summary: false)
+          faces = File.binread(candidate, 4, 80).unpack1('V') if ok && File.file?(candidate) && File.size(candidate) >= 84
+          raise 'STL 导出失败：选中内容没有可导出的面。' unless faces && faces > 0 && File.size(candidate) == 84 + 50 * faces
+          File.rename(candidate, target)
+        end
+        @mesh_message = "STL 导出完成：#{target}"
       end
 
       def import_prepared_mesh(path, name)
@@ -704,6 +786,9 @@ module SHARE3DCAM
       end
       def onNewModel(model)
         refresh(model)
+      end
+      def onActivateModel(model)
+        refresh(model) if Sketchup.platform == :platform_osx
       end
       def refresh(model)
         UI.start_timer(0.1,false) do

@@ -14,6 +14,7 @@ assert.equal(i18n.translate('模型 Z 10.4166 m ｜源文件 Z -1.5834 m','en'),
 assert.equal(i18n.translate('已向上拉伸 2.8 米，生成可编辑的 SU 实体群组。','en'),'Extruded upward by 2.8 m into an editable SketchUp solid group.');
 assert.equal(i18n.translate('圆','unsupported'),'圆');
 assert.equal(i18n.translate('半径','en'),'Radius');
+assert.equal(i18n.translate('绘图助手 · 0.11.0-mac.1','en'),'Scan Tools · 0.11.0-mac.1');
 assert.equal(i18n.translate('请输入有效数字','en'),'Enter a valid number.');
 assert.equal(i18n.translate('模型 Z {0} m ｜源文件 Z {1} m','en',[1.25,-3]),'Model Z 1.25 m | Source Z -3 m');
 const html=fs.readFileSync(path.join(root,'panel.html'),'utf8');

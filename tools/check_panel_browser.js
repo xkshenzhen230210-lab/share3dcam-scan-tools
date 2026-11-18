@@ -13,13 +13,14 @@ async function main(){
    if(name==='language' && window.testState){window.testState.language=payload.language;receive(window.testState)}
   }}});
   await page.goto(pathToFileURL(path.join(root,'extension/share_pointcloud/panel.html')).href);
-  await page.evaluate(()=>{
-   window.testState={language:'zh-CN',busy:false,message:'GPU · Test GPU · 高斯参照 1234',mesh_message:'',
+  await page.evaluate(mac=>{
+   window.testState={language:'zh-CN',compatible_import_available:!mac,busy:false,message:'GPU · Test GPU · 高斯参照 1234',mesh_message:'',
     options:{visible:true,box:true,slice:false,plane:true,size:0,plane_z:2.5,slice_z:1.2,slice_width:.1,x:0,y:0,z:0,angle:0,color:'rgb',budget:50000,gaussian_opacity:65,free_crop:[]},
     cloud:{name:'室内测试.ply',gaussian:true,source:1234,indexed:1234,visible:900,offset:[0,0,0],full_resolution:true,frame:{submitted_points:1234,uploads:1}},
     elevation:{model_z:2.5,source_z:-1}};
    receive(window.testState);
-  });
+  },process.argv.includes('--mac'));
+  assert.equal(await page.locator('#compatible').isDisabled(),process.argv.includes('--mac'));
   await page.locator('#tab-draw').click();
   await page.locator('#shape_segments').evaluate(el=>el.closest('details').open=true);
   await page.locator('#shape_segments').fill('96');
@@ -43,7 +44,19 @@ async function main(){
   assert.equal(await page.evaluate(()=>actions.at(-1).payload.polygon_sides),8);
   await page.evaluate(()=>showError('请输入有效数字'));
   assert.equal(await page.locator('#error').textContent(),'Enter a valid number.');
+  await page.locator('#tab-import').click();
+  await page.locator('#page-import details').evaluateAll(elements=>elements.forEach(el=>el.open=true));
+  await page.locator('#mesh_unit').selectOption('cm');
+  await page.locator('#mesh_up').selectOption('y');
+  await page.locator('#stl_unit').selectOption('m');
+  assert.equal(await page.locator('#convert_stl').textContent(),'GLB / OBJ to STL');
+  await page.locator('#convert_stl').click();
+  assert.deepEqual(await page.evaluate(()=>actions.at(-1)),{name:'convert_stl',payload:{unit:'cm',up:'y',output_unit:'m'}});
+  await page.locator('#export_stl').click();
+  assert.deepEqual(await page.evaluate(()=>actions.at(-1)),{name:'export_stl',payload:{output_unit:'m'}});
+  await page.evaluate(()=>showError('请输入有效数字'));
   await page.locator('[data-language="zh-CN"]').click();
+  assert.equal(await page.locator('#stl_unit').inputValue(),'m');
   assert.equal(await page.locator('#error').textContent(),'请输入有效数字');
   await page.evaluate(()=>showError(''));
   for(const width of [320,360,432,640]){

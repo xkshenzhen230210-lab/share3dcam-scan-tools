@@ -4,6 +4,8 @@
 
 [English overview](../README.en.md) | [中文首页](../README.md) | [Download 0.10.0](https://github.com/xkshenzhen230210-lab/share3dcam-scan-tools/releases/tag/v0.10.0)
 
+For the new import and export commands in 0.11.1, see the [STL conversion guide](STL-Conversion.en.md).
+
 Use this guide with **English** selected at the top of the plugin panel. Bold interface labels below match the English plugin. Intended platform: Windows SketchUp 2024–2026; actual validation: SketchUp 2026 and RTX 4080 SUPER. This is a trial / prerelease.
 
 ## 1. Install and find the controls

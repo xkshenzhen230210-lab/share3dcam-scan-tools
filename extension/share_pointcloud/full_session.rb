@@ -89,9 +89,9 @@ module SHARE3DCAM
       end
 
       def start_worker
-        @ipc=File.join(ENV.fetch('LOCALAPPDATA'),'SHARE3DCAM','PointCloudSessions',SecureRandom.uuid)
+        @ipc=File.join(Platform.session_root,SecureRandom.uuid)
         FileUtils.mkdir_p(@ipc)
-        exe=ENGINE;log=File.join(@ipc,'process.log')
+        exe=Platform.prepare_engine!(ENGINE);log=File.join(@ipc,'process.log')
         @worker_pid=Process.spawn(exe,'--serve','--cache',@index_folder,'--session',@ipc,'--parent',Process.pid.to_s,out:log,err:log)
         @requests={};@last_view_signature=nil
         @view_observer=CloudViewEvents.new(self);@observed_view=@model.active_view;@observed_view.add_observer(@view_observer)
@@ -243,7 +243,8 @@ module SHARE3DCAM
         existing=File.join(folder,'cloud.json')
         if File.file?(existing) && File.expand_path(folder)!=source
           previous_meta=JSON.parse(File.read(existing,encoding:'UTF-8'))
-          raise '同名点云数据文件夹属于其他数据，请换一个工程文件名。' unless %w[source_path source_bytes source_mtime_ns schema].all? { |k| previous_meta[k]==@cloud[k] }
+          fields = %w[source_path source_bytes source_mtime_ns schema unit kind indexed_points origin_m bounds_local_m record_bytes tiles sh_coefficients]
+          raise '同名点云数据文件夹属于其他数据，请换一个工程文件名。' unless fields.all? { |key| previous_meta[key] == @cloud[key] }
         end
         files = if gaussian?
                   %w[cloud.json gaussians.bin harmonics.bin]

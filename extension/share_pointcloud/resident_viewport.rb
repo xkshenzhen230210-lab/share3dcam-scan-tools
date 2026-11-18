@@ -4,7 +4,8 @@ module SHARE3DCAM
  module PointCloud
   module ResidentAPI
    extend Fiddle::Importer
-   dlload File.join(ROOT,'bin','share_cloud_resident_097.dll')
+   raise 'This package requires Windows SketchUp.' unless Sketchup.platform == :platform_win
+   dlload Platform.library_path(ROOT)
    def self.import_function(name,ctype,argtype,call_type=nil)
     # Live SU API calls may synchronously re-enter Ruby observers. Keep the
     # interpreter lock; Fiddle::Importer otherwise releases it by default.
@@ -87,6 +88,7 @@ module SHARE3DCAM
    end
    def poll_resident
     return unless @resident
+    return if Sketchup.platform == :platform_osx && @model != Sketchup.active_model
     @resident_metrics=JSON.parse(ResidentAPI.pc_stats(@resident).to_s)
     state=@resident_metrics['state']
     if state==2
@@ -169,8 +171,8 @@ module SHARE3DCAM
    def ensure_query_worker
     raise '高斯参照支持剪切盒和描图。点数统计和裁剪 PLY 导出仅用于普通点云。' if gaussian?
     return if @worker_pid
-    @ipc=File.join(ENV.fetch('LOCALAPPDATA'),'SHARE3DCAM','PointCloudSessions',SecureRandom.uuid);FileUtils.mkdir_p(@ipc)
-    exe=ENGINE;log=File.join(@ipc,'process.log')
+    @ipc=File.join(Platform.session_root,SecureRandom.uuid);FileUtils.mkdir_p(@ipc)
+    exe=Platform.prepare_engine!(ENGINE);log=File.join(@ipc,'process.log')
     @worker_pid=Process.spawn(exe,'--serve','--cache',@index_folder,'--session',@ipc,'--parent',Process.pid.to_s,out:log,err:log)
     @requests={};@want_refresh=false
     @worker_timer=UI.start_timer(0.12,true) { PointCloud.safely { poll_worker } }

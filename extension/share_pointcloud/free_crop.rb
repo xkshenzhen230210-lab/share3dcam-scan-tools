@@ -23,6 +23,7 @@ module SHARE3DCAM
     @free_crop_resident=@resident;@free_crop_signature=signature
    end
    def poll_resident
+    return if Sketchup.platform == :platform_osx && @model != Sketchup.active_model
     resident_options if @resident && ResidentAPI.pc_status(@resident)==2 && @free_crop_resident!=@resident
     super
    end

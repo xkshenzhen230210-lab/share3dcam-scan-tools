@@ -8,9 +8,12 @@ from pathlib import Path
 def main():
     parser=argparse.ArgumentParser()
     parser.add_argument('--source');parser.add_argument('--out')
-    parser.add_argument('--index',action='store_true');parser.add_argument('--serve',action='store_true')
-    parser.add_argument('--mesh', action='store_true')
-    parser.add_argument('--gaussian', action='store_true')
+    mode=parser.add_mutually_exclusive_group()
+    mode.add_argument('--index',action='store_true');mode.add_argument('--serve',action='store_true')
+    mode.add_argument('--mesh', action='store_true')
+    mode.add_argument('--to-stl', action='store_true')
+    mode.add_argument('--gaussian', action='store_true')
+    parser.add_argument('--target');parser.add_argument('--output-unit', default='mm')
     parser.add_argument('--up', default='z')
     parser.add_argument('--compatible-cpu',action='store_true')
     parser.add_argument('--cache');parser.add_argument('--session');parser.add_argument('--parent',type=int)
@@ -21,6 +24,7 @@ def main():
         from converter.worker import serve
         return serve(args.cache,args.session,args.parent) or 0
     if not args.source or not args.out:parser.error('导入需要source/out')
+    if args.to_stl and not args.target:parser.error('--to-stl requires --target')
     out=Path(args.out);out.mkdir(parents=True,exist_ok=True)
     def status(value):
         f=out/'status.json';tmp=out/'status.json.tmp'
@@ -47,6 +51,11 @@ def main():
             from converter.compatibility import enable_compatible_cpu
             policy=enable_compatible_cpu()
         status({'state':'reading','read_points':0})
+        if args.to_stl:
+            from converter.mesh import write_stl
+            result = write_stl(args.source, args.target, args.unit, args.up, args.output_unit)
+            status(dict(state='complete', **result))
+            return 0
         if args.mesh:
             from converter.mesh import prepare_mesh
             result = prepare_mesh(args.source, out, args.unit, args.up)

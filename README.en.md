@@ -8,7 +8,7 @@
 
 Import point clouds, Gaussian splats and meshes into SketchUp, then trace the visible scan to create editable native edges, faces and solids.
 
-> Version **0.10.0 — trial / prerelease**. Intended for Windows SketchUp 2024–2026. Tested on SketchUp 2026 with an RTX 4080 SUPER; SketchUp 2024/2025, other GPUs and long-term stability still require validation.
+> Current source: **0.11.1 — trial / prerelease** for Windows SketchUp 2024–2026. Previous native drawing and rendering validation used SketchUp 2026 and an RTX 4080 SUPER; other environments remain unverified.
 
 ## Download and install
 
@@ -24,7 +24,7 @@ The installation package includes its runtime; customers do not need Python. Ske
 |---|---|
 | Point clouds | LAS / LAZ / PLY / XYZ / TXT / PTS; complete index; reopen an existing index |
 | Gaussian splats | Standard 3DGS PLY with shape, color and opacity as a reference in the SU viewport; reopen an existing index |
-| Meshes | GLB / OBJ imported as native components; OBJ requires its MTL and texture files |
+| Meshes | Import GLB / OBJ / STL, convert GLB or OBJ to STL, or export selected geometry. See the [STL guide](docs/STL-Conversion.en.md). |
 | View | Original colors, top view, reference zoom, Gaussian opacity, reference alignment |
 | Crop | 3D clipping box, horizontal slice, polygon keep/remove, undo and reset |
 | Draw | Snap tracing, rectangle, circle, regular polygon, center-point arc, native Push/Pull, upward extrusion, native Offset, distance measurement and guide points |
@@ -47,7 +47,7 @@ See the [English user guide](docs/User-Guide.en.md) for click sequences, dimensi
 ## Current limitations
 
 - Gaussian input must use the standard 3DGS PLY property layout. Ordinary vertex PLY files belong in the point-cloud importer. Compressed or nonstandard Gaussian formats may not load.
-- Mesh support is GLB / OBJ. OSGB is not implemented. The plugin does not automatically reconstruct a complete building from scans.
+- Mesh support is GLB / OBJ / STL. OSGB is not implemented. The plugin does not automatically reconstruct a complete building from scans.
 - Gaussian snapping uses the original center of a visible Gaussian. Verify elevations and dimensions using neighboring points and a site reference.
 - Free crop is a reversible display mask, not a source-file edit. Cropped PLY export is limited to ordinary point clouds within the clipping box; reset free crop before box statistics or export.
 - Scan overlays are not included in SketchUp's normal 2D image export. Use an actual viewport screenshot when documenting the scan together with geometry.
