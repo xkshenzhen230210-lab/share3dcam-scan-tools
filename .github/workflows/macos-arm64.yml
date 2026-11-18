@@ -27,7 +27,7 @@ jobs:
           npm install --prefix build/bilingual/browser --no-audit --no-fund playwright@1.62.1
           node tools/check_panel_browser.js --mac
       - name: Converter tests
-        run: PYTHONPATH=tests python -m unittest test_converter test_full_index test_queries test_worker test_compatibility -v
+        run: PYTHONPATH=tests python -m unittest test_converter test_full_index test_queries test_worker test_compatibility test_stl -v
       - run: python tools/build_macos.py
       - name: Frozen converter format checks
         run: python tools/check_macos_frozen.py

@@ -1,7 +1,7 @@
 // Same exported C API and source-ID picking contract as Windows.
 #define API extern "C" __attribute__((visibility("default")))
 API Engine* pc_create(){try{return new Engine;}catch(...){return nullptr;}}
-API void pc_destroy(Engine* e){if(e){detach(e);delete e;}}
+API void pc_destroy(Engine* e){if(e){e->retired=true;if(detach(e))delete e;}}
 API int pc_add_tile(Engine* e,const char* path,uint64_t count){if(!e||e->state!=0||!path||count==0||count>100000000||e->count>100000000-count)return -1;try{e->tiles.push_back({path,count});e->count+=count;return 0;}catch(const std::exception& x){e->fail(x);return -1;}}
 API int pc_add_gaussians(Engine* e,const char* path,uint64_t count,const char* harmonics,uint32_t coefficients){
  if(!e||e->state!=0||e->count||!path||!harmonics||!count||count>20000000) return -1;
@@ -22,7 +22,7 @@ API int pc_set_gaussian_opacity(Engine* e,double opacity){
 }
 API int pc_attach(Engine* e){if(!e||e->state!=2)return -1;try{
  auto get=reinterpret_cast<GetModel>(dlsym(RTLD_DEFAULT,"SUApplicationGetActiveModel"));auto create=reinterpret_cast<Create>(dlsym(RTLD_DEFAULT,"SUModelCreateOverlay"));auto enable=reinterpret_cast<Enable>(dlsym(RTLD_DEFAULT,"SUOverlayEnable"));
- if(!get||!create||!enable)throw std::runtime_error("SketchUp 2024+ native overlay API required");
+ if(!get||!create||!enable||!dlsym(RTLD_DEFAULT,"SUModelReleaseOverlay"))throw std::runtime_error("SketchUp 2024+ native overlay API required");
  int result=get(&e->model);if(result)throw std::runtime_error("Cannot access active SU model");
  CreateOverlay info{};info.version=1;info.user_data=e;info.id="share3dcam.resident.fullcloud";info.name=e->gaussian()?u8"赛尔高斯绘图参照":u8"赛尔连续全量点云";info.desc=u8"随 SketchUp 相机更新的扫描参照";info.source="SHARE3DCAM";info.image_format=0;info.image_orientation=0;info.get_extents=extents;info.begin_frame=begin;info.draw_frame=draw;info.end_frame=end_frame;
  result=create(e->model,&info,&e->overlay);if(result)throw std::runtime_error("SUModelCreateOverlay: "+std::to_string(result));result=enable(e->overlay,true);if(result)throw std::runtime_error("SUOverlayEnable: "+std::to_string(result));return 0;

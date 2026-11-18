@@ -1,6 +1,6 @@
 # SHARE3DCAM Scan Tools for Apple Silicon
 
-Saier E-commerce Center · 0.11.0-mac.1 · Chinese / English test build
+Saier E-commerce Center · 0.11.1-mac.1 · Chinese / English test build
 
 ## Compatibility and validation
 
@@ -30,7 +30,8 @@ No separate Python, CUDA or Windows environment is required on the customer Mac.
 |---|---|
 | Point clouds | LAS, LAZ, ordinary PLY, XYZ, TXT, PTS; full indexing and existing indexes |
 | Full rendering | Metal-resident data; all indexed points submitted while moving and idle |
-| Mesh | GLB and OBJ converted/imported as native components with textures |
+| Mesh | GLB, OBJ and STL as native components; textures supported for GLB and OBJ |
+| STL | Convert GLB/OBJ files directly, or export selected SU geometry as binary STL |
 | Gaussian | Standard 3DGS PLY and existing Gaussian indexes in the SU viewport |
 | Reference tools | Move, rotate, 3D clip box, horizontal slice, polygon crop and restore |
 | Drawing | Elevations, measurement, tracing/faces, rectangle, circle, polygon, arc, upward extrusion |
@@ -52,6 +53,8 @@ Use Open Existing Index next time; preserve the complete index folder.
 **Mesh:** Import → Mesh → Import mesh component. Keep OBJ, MTL and textures
 together. Check extent, scale and appearance. Keep the scan component separate
 from the new wall geometry and avoid exploding the dense scan.
+
+**STL:** Expand “OBJ / STL input units and up axis” and match the source file. Millimeters are common for printing; GLB uses meters and Y up. Under “STL conversion and export”, choose output units and select “GLB / OBJ to STL”, or select faces, groups, or components in SketchUp and choose “Export selection”. STL stores triangles without units, textures, materials or scan references. It does not repair meshes for printing. Reopen at the same units and verify dimensions.
 
 **Gaussian:** Import → Gaussian → Import into SU viewport, or open an existing
 Gaussian index. Ordinary PLY point clouds and 3DGS PLY require different importers.

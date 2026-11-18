@@ -44,7 +44,19 @@ async function main(){
   assert.equal(await page.evaluate(()=>actions.at(-1).payload.polygon_sides),8);
   await page.evaluate(()=>showError('请输入有效数字'));
   assert.equal(await page.locator('#error').textContent(),'Enter a valid number.');
+  await page.locator('#tab-import').click();
+  await page.locator('#page-import details').evaluateAll(elements=>elements.forEach(el=>el.open=true));
+  await page.locator('#mesh_unit').selectOption('cm');
+  await page.locator('#mesh_up').selectOption('y');
+  await page.locator('#stl_unit').selectOption('m');
+  assert.equal(await page.locator('#convert_stl').textContent(),'GLB / OBJ to STL');
+  await page.locator('#convert_stl').click();
+  assert.deepEqual(await page.evaluate(()=>actions.at(-1)),{name:'convert_stl',payload:{unit:'cm',up:'y',output_unit:'m'}});
+  await page.locator('#export_stl').click();
+  assert.deepEqual(await page.evaluate(()=>actions.at(-1)),{name:'export_stl',payload:{output_unit:'m'}});
+  await page.evaluate(()=>showError('请输入有效数字'));
   await page.locator('[data-language="zh-CN"]').click();
+  assert.equal(await page.locator('#stl_unit').inputValue(),'m');
   assert.equal(await page.locator('#error').textContent(),'请输入有效数字');
   await page.evaluate(()=>showError(''));
   for(const width of [320,360,432,640]){

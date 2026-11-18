@@ -243,7 +243,8 @@ module SHARE3DCAM
         existing=File.join(folder,'cloud.json')
         if File.file?(existing) && File.expand_path(folder)!=source
           previous_meta=JSON.parse(File.read(existing,encoding:'UTF-8'))
-          raise '同名点云数据文件夹属于其他数据，请换一个工程文件名。' unless %w[source_path source_bytes source_mtime_ns schema].all? { |k| previous_meta[k]==@cloud[k] }
+          fields = %w[source_path source_bytes source_mtime_ns schema unit kind indexed_points origin_m bounds_local_m record_bytes tiles sh_coefficients]
+          raise '同名点云数据文件夹属于其他数据，请换一个工程文件名。' unless fields.all? { |key| previous_meta[key] == @cloud[key] }
         end
         files = if gaussian?
                   %w[cloud.json gaussians.bin harmonics.bin]

@@ -88,6 +88,7 @@ module SHARE3DCAM
    end
    def poll_resident
     return unless @resident
+    return if Sketchup.platform == :platform_osx && @model != Sketchup.active_model
     @resident_metrics=JSON.parse(ResidentAPI.pc_stats(@resident).to_s)
     state=@resident_metrics['state']
     if state==2

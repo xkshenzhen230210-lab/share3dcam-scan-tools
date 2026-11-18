@@ -4,25 +4,24 @@
 
 <img src="extension/share_pointcloud/share3dcam-logo.png" width="260" alt="SHARE3DCAM">
 
-**Saier E-commerce Center · 0.11.0-mac.1 · Chinese / English · MIT**
+**Saier E-commerce Center · 0.11.1-mac.1 · Chinese / English · MIT**
 
 This branch targets native Apple Silicon SketchUp 2024–2026. Intel Macs and Rosetta
 are unsupported. Metal renders full point clouds and Gaussian references; drawing,
 cropping, project handling and bilingual UI reuse the existing implementation.
 
-Native compilation, 9 frozen-converter format groups, 9 Metal GPU tests and 32 UI
-combinations pass on an arm64 macOS 15 hosted runner. **Installation, interaction,
-native modeling and save/reopen inside SketchUp for Mac have not been accepted.**
+See this branch's Actions runs for native build, converter, Metal and bilingual UI results.
+**Installation, interaction, native modeling and save/reopen inside SketchUp for Mac remain unverified.**
 The test package is ad-hoc signed and has not been Apple Developer signed/notarized.
 
 - [English installation and operation](docs/Mac_Installation_and_Operation.md)
 - [中文安装与操作说明](docs/Mac安装与操作说明.md)
-- [Successful build and tests](https://github.com/xkshenzhen230210-lab/share3dcam-scan-tools/actions/runs/44038413085)
+- [Build and test runs](https://github.com/xkshenzhen230210-lab/share3dcam-scan-tools/actions/workflows/macos-arm64.yml?query=branch%3Afeature%2Fmacos-apple-silicon)
 - Download the package from that run's Artifacts and install the RBZ via Extension Manager.
 
 ## Implemented scope
 
-LAS/LAZ/PLY/XYZ/TXT/PTS point clouds; textured GLB/OBJ meshes; standard 3DGS PLY and
+LAS/LAZ/PLY/XYZ/TXT/PTS point clouds; GLB/OBJ/STL meshes; GLB/OBJ to STL conversion and STL export of selected geometry; standard 3DGS PLY and
 existing indexes; full viewport references, elevations and snapping, closed faces,
 upward extrusion, rectangles/circles/polygons/arcs, 3D clip boxes, horizontal slices,
 polygon cropping and collected reference projects. OSGB import is unsupported.

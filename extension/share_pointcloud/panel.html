@@ -69,7 +69,7 @@ input[type=range]{padding:0;accent-color:var(--red)}
 <header>
   <div class="brand">
     <img src="share3dcam-logo.png" width="952" height="135" alt="SHARE3DCAM">
-    <div class="brand-meta"><strong>赛尔电商中心</strong><small>绘图助手 · 0.11.0-mac.1</small></div>
+    <div class="brand-meta"><strong>赛尔电商中心</strong><small>绘图助手 · 0.11.1-mac.1</small></div>
   </div>
   <div class="language-row">
     <span class="language-caption">界面语言 / Interface language</span>
@@ -101,12 +101,21 @@ input[type=range]{padding:0;accent-color:var(--red)}
       </div>
     </section>
     <section class="card">
-      <div class="card-head"><h2>Mesh 网格</h2><span class="format">GLB / OBJ</span></div>
+      <div class="card-head"><h2>Mesh 网格</h2><span class="format">GLB / OBJ / STL</span></div>
       <button id="import_mesh" class="primary wide" onclick="call('import_mesh',{unit:val('mesh_unit'),up:val('mesh_up')})">导入网格组件</button>
       <details>
-        <summary>OBJ 单位、轴向与贴图</summary>
-        <div class="row"><label>OBJ 单位<select id="mesh_unit"><option value="m">米</option><option value="mm">毫米</option><option value="cm">厘米</option><option value="ft">英尺</option></select></label><label>OBJ 向上轴<select id="mesh_up"><option value="z">Z 向上</option><option value="y">Y 向上</option></select></label></div>
-        <p class="hint">保留 OBJ、MTL 和贴图之间的相对路径。</p>
+        <summary>OBJ / STL 输入单位与轴向</summary>
+        <div class="row"><label>输入单位<select id="mesh_unit"><option value="m">米</option><option value="mm">毫米</option><option value="cm">厘米</option><option value="ft">英尺</option></select></label><label>输入向上轴<select id="mesh_up"><option value="z">Z 向上</option><option value="y">Y 向上</option></select></label></div>
+        <p class="hint">STL 无单位，请按来源选单位；GLB 自动按米、Y 向上。导入带贴图的 OBJ 时保留 MTL 和图片。</p>
+      </details>
+      <details>
+        <summary>STL 转换与导出</summary>
+        <label>STL 输出单位<select id="stl_unit"><option value="mm">毫米</option><option value="cm">厘米</option><option value="m">米</option></select></label>
+        <div class="row">
+          <button id="convert_stl" onclick="call('convert_stl',{unit:val('mesh_unit'),up:val('mesh_up'),output_unit:val('stl_unit')})">GLB / OBJ 转 STL</button>
+          <button id="export_stl" onclick="call('export_stl',{output_unit:val('stl_unit')})">导出选中几何</button>
+        </div>
+        <p class="hint">输出二进制 STL，仅保留三角面，不含贴图、材质或点云和高斯参照。</p>
       </details>
     </section>
     <section class="card">
@@ -295,7 +304,7 @@ function receive(state) {
 function renderState(state,preserveInputs=false) {
   const cloud = state.cloud;
   const gaussian = cloud?.gaussian === true;
-  for (const id of ['import', 'open_index', 'import_mesh', 'import_gaussian', 'open_gaussian_index', 'save_project']) {
+  for (const id of ['import', 'open_index', 'import_mesh', 'convert_stl', 'export_stl', 'import_gaussian', 'open_gaussian_index', 'save_project']) {
     $(id).disabled = state.busy;
   }
   scanContent.forEach(element => element.hidden = !cloud);

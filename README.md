@@ -4,23 +4,23 @@
 
 <img src="extension/share_pointcloud/share3dcam-logo.png" width="260" alt="SHARE3DCAM">
 
-**赛尔电商中心 · 0.11.0-mac.1 · 中文 / English · MIT 开源**
+**赛尔电商中心 · 0.11.1-mac.1 · 中文 / English · MIT 开源**
 
 本分支为 Apple Silicon 原生版，目标 SU 2024–2026，Intel Mac / Rosetta 不支持。
 点云全量显示和高斯渲染使用 Metal，绘图、裁剪、工程管理及中英界面共用现有实现。
 
-已在 macOS 15 的 arm64 构建机完成编译、9 组独立转换器格式测试、9 项 Metal GPU
-测试和 32 组界面组合检查。**尚未通过 Mac 版 SketchUp 内安装、实际绘图及保存复开的验收。**
+原生编译、独立转换器测试、Metal 测试和双语界面结果见本分支的 Actions 构建记录。
+**尚未完成 Mac 版 SketchUp 内安装、实际绘图及保存复开的验收。**
 测试包使用临时签名，未进行 Apple 开发者签名与公证。
 
 - [中文安装与操作说明](docs/Mac安装与操作说明.md)
 - [English installation and operation](docs/Mac_Installation_and_Operation.md)
-- [通过的构建与测试记录](https://github.com/xkshenzhen230210-lab/share3dcam-scan-tools/actions/runs/44038413085)
+- [构建与测试记录](https://github.com/xkshenzhen230210-lab/share3dcam-scan-tools/actions/workflows/macos-arm64.yml?query=branch%3Afeature%2Fmacos-apple-silicon)
 - 安装包在上述 Actions 记录的 Artifacts 中；完整解压后从 SU 扩展程序管理器安装 RBZ。
 
 ## 实现范围
 
-点云 LAS/LAZ/PLY/XYZ/TXT/PTS；Mesh GLB/OBJ 与贴图；标准 3DGS PLY 和已有索引；
+点云 LAS/LAZ/PLY/XYZ/TXT/PTS；Mesh GLB/OBJ/STL；GLB/OBJ 转 STL 和选中几何导出 STL；标准 3DGS PLY 和已有索引；
 全量主视窗参照、标高与捕捉、闭合成面与向上拉伸、矩形/圆/多边形/圆弧、
 立体剪切盒、水平切片、自由裁剪、工程保存与参照收拢。
 

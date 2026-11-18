@@ -1,6 +1,6 @@
 """Run the packaged converter without relying on the developer Python path."""
 from pathlib import Path
-import json,math,os,struct,subprocess,tempfile
+import json,math,os,struct,subprocess,sys,tempfile
 import laspy
 import numpy as np
 from PIL import Image
@@ -9,13 +9,15 @@ ROOT=Path(__file__).resolve().parents[1]
 ENGINE=ROOT/'extension/share_pointcloud/bin/macos-arm64/share_cloud_engine'
 
 def main():
+    engine=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else ENGINE
+    report=Path(sys.argv[2]) if len(sys.argv)>2 else ROOT/'build/macos-arm64/frozen-validation.json'
     env=os.environ.copy();env.pop('PYTHONPATH',None);env.pop('PYTHONHOME',None)
     results=[]
     with tempfile.TemporaryDirectory(prefix='赛尔 Mac 测试 ') as tmp:
         root=Path(tmp)
-        def run(source,mode):
-            out=root/(source.stem+'_'+source.suffix[1:]+'_索引')
-            p=subprocess.run([str(ENGINE),mode,'--source',str(source),'--out',str(out),'--unit','m','--limit','10'],cwd=root,env=env,capture_output=True,text=True,timeout=120)
+        def run(source,mode,*options):
+            out=root/f'验证_{len(results)}'
+            p=subprocess.run([str(engine),mode,'--source',str(source),'--out',str(out),'--unit','m','--limit','10',*options],cwd=root,env=env,capture_output=True,text=True,timeout=120)
             status=json.loads((out/'status.json').read_text('utf-8')) if (out/'status.json').is_file() else {}
             if p.returncode or status.get('state')!='complete':raise RuntimeError({'file':source.name,'status':status,'stderr':p.stderr[-1500:]})
             results.append({'format':source.suffix,'mode':mode,'state':'passed','result':status})
@@ -35,8 +37,18 @@ def main():
             mesh.visual=trimesh.visual.TextureVisuals(uv=mesh.vertices[:,:2]+.5,image=Image.new('RGB',(8,8),(210,120,80)))
             mesh.export(source);out,status=run(source,'--mesh')
             assert status['triangles']==12 and status['textures']>=1 and (out/'mesh.dae').is_file(),status
-    folder=ROOT/'build/macos-arm64';folder.mkdir(parents=True,exist_ok=True)
-    (folder/'frozen-validation.json').write_text(json.dumps(results,ensure_ascii=False,indent=2),encoding='utf-8')
+            target=root/f'转换后的 网格_{ext}.stl'
+            _,status=run(source,'--to-stl','--target',str(target),'--output-unit','mm')
+            assert status['triangles']==12 and target.stat().st_size==684
+            np.testing.assert_allclose(trimesh.load_mesh(target).extents,[1000]*3)
+        for kind in ['stl','stl_ascii']:
+            source=root/f'{kind} STL 网格.stl'
+            payload=trimesh.creation.box(extents=[1000,200,300]).export(file_type=kind)
+            source.write_bytes(payload.encode() if isinstance(payload,str) else payload)
+            out,status=run(source,'--mesh','--unit','mm')
+            assert status['triangles']==12 and (out/'mesh.dae').is_file(),status
+    report.parent.mkdir(parents=True,exist_ok=True)
+    report.write_text(json.dumps(results,ensure_ascii=False,indent=2),encoding='utf-8')
     print(json.dumps({'frozen_formats_passed':len(results),'results':results},ensure_ascii=False))
 
 if __name__=='__main__':main()

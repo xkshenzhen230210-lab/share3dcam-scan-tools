@@ -39,6 +39,7 @@ struct Engine{
  std::vector<Tile> tiles;std::vector<Source> source;
  std::string gaussian_path,harmonic_path;uint32_t harmonic_count=0;
  std::atomic<int> state{0};std::atomic<uint64_t> loaded{0};std::atomic<bool> cancel{false};std::thread loader;
+ std::atomic<bool> retired{false};
  std::mutex mutex;Options options{};std::string error,device_name,stats_json;uint64_t count=0,frames=0,uploads=0,submitted=0,visible=0;
  Bounds bounds{};SURef model{},overlay{};BeginFrame camera{};std::array<double,16> source_projection{};
  double frame_ms=0,load_seconds=0,gaussian_opacity=.65;bool frame_valid=false;uint32_t width=0,height=0;
@@ -192,8 +193,13 @@ void Engine::render(const BeginFrame& c){@autoreleasepool{
 using GetModel=int(*)(SURef*);using Create=int(*)(SURef,const CreateOverlay*,SURef*);using Enable=int(*)(SURef,bool);using Release=int(*)(SURef,SURef*);
 static Bounds extents(SURef,void* p){auto e=static_cast<Engine*>(p);std::lock_guard<std::mutex> l(e->mutex);Bounds b=e->bounds;double a=e->options.angle*3.141592653589793/180.,c=cos(a),s=sin(a);Bounds out{{1e300,1e300,1e300},{-1e300,-1e300,-1e300}};
  for(int i=0;i<8;i++){double x=(i&1)?b.max.x:b.min.x,y=(i&2)?b.max.y:b.min.y,z=(i&4)?b.max.z:b.min.z;Vec3 v{(x*c-y*s+e->options.x)/.0254,(x*s+y*c+e->options.y)/.0254,(z+e->options.z)/.0254};out.min={std::min(out.min.x,v.x),std::min(out.min.y,v.y),std::min(out.min.z,v.z)};out.max={std::max(out.max.x,v.x),std::max(out.max.y,v.y),std::max(out.max.z,v.z)};}return out;}
-static void begin(SURef,const BeginFrame* c,void* p){auto e=static_cast<Engine*>(p);try{require(c&&c->viewport_width>=1&&c->viewport_width<=32768&&c->viewport_height>=1&&c->viewport_height<=32768&&std::isfinite(c->height),"SU overlay camera ABI mismatch");e->render(*c);}catch(const std::exception& x){e->fail(x);}}
-static void draw(SURef,DrawFrame* f,void* p){auto e=static_cast<Engine*>(p);std::lock_guard<std::mutex> l(e->mutex);if(!e->frame_valid)return;uint32_t pitch=e->width*4,size=pitch*e->height;f->blending_factor=1.;f->color={e->colors.data(),pitch,size};f->depth={e->depths.data(),pitch,size};}
+static void begin(SURef,const BeginFrame* c,void* p){auto e=static_cast<Engine*>(p);if(e->retired)return;try{require(c&&c->viewport_width>=1&&c->viewport_width<=32768&&c->viewport_height>=1&&c->viewport_height<=32768&&std::isfinite(c->height),"SU overlay camera ABI mismatch");e->render(*c);}catch(const std::exception& x){e->fail(x);}}
+static void draw(SURef,DrawFrame* f,void* p){auto e=static_cast<Engine*>(p);std::lock_guard<std::mutex> l(e->mutex);if(e->retired||!e->frame_valid)return;uint32_t pitch=e->width*4,size=pitch*e->height;f->blending_factor=1.;f->color={e->colors.data(),pitch,size};f->depth={e->depths.data(),pitch,size};}
 static void end_frame(SURef,void*){}
-static void detach(Engine* e){if(e->overlay.ptr){auto fn=reinterpret_cast<Release>(dlsym(RTLD_DEFAULT,"SUModelReleaseOverlay"));if(fn)fn(e->model,&e->overlay);e->overlay={};}}
+static bool detach(Engine* e){
+ if(!e->overlay.ptr)return true;
+ const auto release=reinterpret_cast<Release>(dlsym(RTLD_DEFAULT,"SUModelReleaseOverlay"));
+ if(!release||release(e->model,&e->overlay)!=0)return false;
+ e->overlay={};return true;
+}
 #include "resident_api.inc"
